@@ -8,4 +8,14 @@ Stack: Node.js + Express + Neon Postgres, deploy trên Vercel.
 - Kế hoạch triển khai từng bước: [docs/implementation-plan.md](docs/implementation-plan.md)
 - Màn hình mô phỏng: [docs/ui-mockups.html](docs/ui-mockups.html) (tải về mở bằng trình duyệt) hoặc https://claude.ai/artifact/9juSSsiEHbunMYz86zVN6g
 
-Trạng thái: đã duyệt kế hoạch, sắp bắt đầu Bước 1 (bộ khung dự án).
+Trạng thái: Bước 1 (bộ khung dự án) đang review; chờ Neon/Vercel để kiểm `/api/health` thật.
+
+## Chạy local
+
+```bash
+npm install
+cp .env.example .env      # điền DATABASE_URL, JWT_SECRET...
+npm run migrate           # tạo bảng (cần DATABASE_URL)
+npm run dev               # http://localhost:3000
+npm test && npm run lint  # chạy trước khi push
+```
