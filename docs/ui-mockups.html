@@ -1,0 +1,1202 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kế hoạch Ví Gọn</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: tài liệu đặc tả một cột chữ + khung điện thoại mô phỏng bên phải mỗi tính năng; xếp chồng trên mobile */
+:root {
+  --bg:#F4F6F3; --surface:#FFFFFF; --surface-2:#EDF1EC; --ink:#17211D; --muted:#5B6A63; --line:#DCE3DD;
+  --accent:#0D6B5E; --accent-ink:#FFFFFF; --accent-soft:#DDEFEA;
+  --income:#1C7C45; --expense:#B6452A; --warn:#A86A12;
+  --ok-soft:#DDF0E4; --warn-soft:#FBEFD9; --danger-soft:#F8E1DA;
+  --frame:#1B2420;
+  --c1:#0D6B5E; --c2:#D08A2E; --c3:#5E6FB8; --c4:#B6452A; --c5:#9AA79F;
+  --font: "Be Vietnam Pro", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#0F1513; --surface:#18201D; --surface-2:#202A26; --ink:#E7EEEA; --muted:#9AABA3; --line:#2C3833;
+  --accent:#4FC2AE; --accent-ink:#0B1A16; --accent-soft:#183B35;
+  --income:#5CC98A; --expense:#EE8A6E; --warn:#E3AE55;
+  --ok-soft:#173326; --warn-soft:#3A2E17; --danger-soft:#3D221B;
+  --frame:#000000;
+  --c1:#4FC2AE; --c2:#E3AE55; --c3:#8F9DE0; --c4:#EE8A6E; --c5:#6B7A73;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg:#0F1513; --surface:#18201D; --surface-2:#202A26; --ink:#E7EEEA; --muted:#9AABA3; --line:#2C3833;
+  --accent:#4FC2AE; --accent-ink:#0B1A16; --accent-soft:#183B35;
+  --income:#5CC98A; --expense:#EE8A6E; --warn:#E3AE55;
+  --ok-soft:#173326; --warn-soft:#3A2E17; --danger-soft:#3D221B;
+  --frame:#000000;
+  --c1:#4FC2AE; --c2:#E3AE55; --c3:#8F9DE0; --c4:#EE8A6E; --c5:#6B7A73;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; line-height: 1.25; margin: 0; }
+h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 19px; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--accent); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 17px; color: var(--muted); max-width: 64ch; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+section { margin-top: 56px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+
+/* header */
+.top { display: flex; flex-direction: column; gap: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; background: var(--surface-2); }
+tr:last-child td { border-bottom: 0; }
+td a { text-decoration: none; font-weight: 500; }
+.pri { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.pri.must { background: var(--accent-soft); color: var(--accent); }
+.pri.should { background: var(--warn-soft); color: var(--warn); }
+.pri.later { background: var(--surface-2); color: var(--muted); }
+
+/* principles + tokens */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.note b { font-weight: 600; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.sw { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.sw i { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); flex: none; }
+
+/* phase header */
+.phase { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding-bottom: 12px; border-bottom: 2px solid var(--ink); }
+.phase .eyebrow { color: var(--accent); }
+
+/* feature block */
+.feature { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; padding-block: 36px; border-bottom: 1px solid var(--line); }
+.feature:last-child { border-bottom: 0; }
+.spec { min-width: 0; display: flex; flex-direction: column; gap: 14px; max-width: 64ch; }
+.spec-head { display: flex; flex-direction: column; gap: 6px; }
+.spec-head .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fid { font-size: 13px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+.spec h4 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.spec ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.spec .goal { font-size: 16px; }
+.ac li::marker { content: "✓  "; color: var(--income); }
+.mocks { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+.mock-cap { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; max-width: 250px; }
+@media (max-width: 860px) {
+  .feature { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ===== phone mockup ===== */
+.phone { width: 250px; max-width: 100%; border: 7px solid var(--frame); border-radius: 34px; background: var(--bg); overflow: hidden;
+  font-size: 11.5px; line-height: 1.4; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(10, 30, 25, 0.12); }
+.ph-status { display: flex; justify-content: space-between; padding: 8px 18px 4px; font-size: 10px; font-weight: 600; }
+.ph-body { padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 10px; min-height: 410px; }
+.ph-title { display: flex; justify-content: space-between; align-items: center; }
+.ph-title b { font-size: 15px; font-weight: 700; }
+.ph-title .ic { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+.ph-tabs { display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; border-top: 1px solid var(--line); background: var(--surface); padding: 6px 4px 10px; font-size: 9px; color: var(--muted); text-align: center; }
+.ph-tabs span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ph-tabs span::before { content: ""; width: 16px; height: 16px; border-radius: 5px; background: var(--surface-2); }
+.ph-tabs .on { color: var(--accent); font-weight: 600; }
+.ph-tabs .on::before { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+.ph-tabs .fab::before { display: none; }
+.ph-tabs .fab b { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 20px; font-weight: 500; margin-top: -18px; box-shadow: 0 4px 10px rgba(13, 107, 94, 0.35); }
+
+.m-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.m-hero { background: var(--accent); color: var(--accent-ink); border: 0; }
+.m-hero .lbl { opacity: 0.8; }
+.m-big { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.m-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.m-row > :first-child { min-width: 0; }
+.lbl { font-size: 10px; color: var(--muted); }
+.amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.in { color: var(--income); } .out { color: var(--expense); }
+.m-hero .in, .m-hero .out { color: var(--accent-ink); }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.split > div { background: rgba(255,255,255,0.14); border-radius: 10px; padding: 6px 8px; }
+.tx { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.tx:last-child { border-bottom: 0; }
+.tx .t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tx .t b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; font-size: 11px; color: #fff; flex: none; }
+.k1 { background: var(--c1); } .k2 { background: var(--c2); } .k3 { background: var(--c3); } .k4 { background: var(--c4); } .k5 { background: var(--c5); }
+.day { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); font-weight: 600; padding-top: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 10px; white-space: nowrap; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); font-weight: 600; }
+.chip.bad { background: var(--danger-soft); border-color: transparent; color: var(--expense); font-weight: 600; }
+.chip.ok { background: var(--ok-soft); border-color: transparent; color: var(--income); font-weight: 600; }
+.chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--surface-2); border-radius: 10px; padding: 3px; font-size: 11px; text-align: center; }
+.seg span { padding: 5px 0; border-radius: 8px; color: var(--muted); }
+.seg .on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.inp { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; display: flex; flex-direction: column; gap: 1px; }
+.inp.focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.btn { background: var(--accent); color: var(--accent-ink); text-align: center; border-radius: 12px; padding: 9px; font-weight: 600; font-size: 12px; }
+.btn.ghost { background: var(--surface-2); color: var(--ink); }
+.btn.sm { padding: 5px 10px; border-radius: 8px; font-size: 10.5px; }
+.prog { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.prog i { display: block; height: 100%; border-radius: 99px; background: var(--income); }
+.prog i.w { background: var(--warn); } .prog i.b { background: var(--expense); } .prog i.a { background: var(--accent); }
+.dots { display: flex; gap: 4px; justify-content: center; }
+.dots i { width: 6px; height: 6px; border-radius: 99px; background: var(--line); }
+.dots i.on { width: 18px; background: var(--accent); }
+.sheet { margin-top: auto; background: var(--surface); border-radius: 18px 18px 0 0; margin-inline: -12px; margin-bottom: -12px; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); }
+.grab { width: 34px; height: 4px; border-radius: 9px; background: var(--line); margin: 0 auto; }
+.dim { background: color-mix(in srgb, var(--ink) 35%, var(--bg)); }
+.keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 13px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.keys span { background: var(--surface-2); border-radius: 8px; padding: 6px 0; }
+.keys .ok { background: var(--accent); color: var(--accent-ink); grid-row: span 2; display: grid; place-items: center; font-size: 11px; }
+.catgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; text-align: center; font-size: 9px; }
+.catgrid span { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0; border-radius: 8px; }
+.catgrid span.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.qr { width: 92px; height: 92px; margin: 0 auto; border-radius: 6px; background:
+  conic-gradient(from 90deg at 2px 2px, var(--surface) 90deg, var(--ink) 0) 0 0 / 9px 9px; border: 6px solid var(--surface); outline: 1px solid var(--line); }
+.receipt { background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; padding: 8px; font-size: 9.5px; display: flex; flex-direction: column; gap: 2px; transform: rotate(-1.5deg); }
+.hl { background: var(--warn-soft); outline: 1.5px solid var(--warn); border-radius: 3px; padding: 0 2px; }
+.avs { display: flex; }
+.av { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; border: 2px solid var(--surface); margin-left: -6px; }
+.av:first-child { margin-left: 0; }
+.toggle { width: 26px; height: 15px; border-radius: 99px; background: var(--accent); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--accent-ink); }
+.toggle.off { background: var(--line); }
+.toggle.off::after { right: auto; left: 2px; background: var(--surface); }
+.bars { display: grid; grid-template-columns: 22px repeat(6, 1fr); gap: 4px; align-items: end; height: 96px; position: relative; }
+.bars .ax { display: flex; flex-direction: column; justify-content: space-between; height: 100%; font-size: 8px; color: var(--muted); text-align: right; }
+.bars .col { display: flex; gap: 2px; align-items: flex-end; height: 100%; justify-content: center;
+  background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 33.333%; }
+.bars .col i { width: 7px; border-radius: 3px 3px 0 0; }
+.bars .col i.a { background: var(--income); } .bars .col i.b { background: var(--expense); }
+.months { display: grid; grid-template-columns: 22px repeat(6, 1fr); gap: 4px; font-size: 8.5px; color: var(--muted); text-align: center; }
+.legend { display: flex; gap: 10px; font-size: 9.5px; color: var(--muted); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
+.donut-row { display: flex; gap: 10px; align-items: center; }
+.donut-row ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; font-size: 10px; }
+.donut-row li { display: flex; justify-content: space-between; gap: 4px; }
+.donut-row li i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
+.banner { border-radius: 10px; padding: 7px 10px; font-size: 10.5px; display: flex; gap: 6px; align-items: flex-start; }
+.banner.warn { background: var(--warn-soft); color: var(--warn); }
+.banner.info { background: var(--accent-soft); color: var(--accent); }
+.steps { display: flex; flex-direction: column; gap: 6px; }
+.steps div { display: flex; gap: 8px; align-items: center; }
+.steps b { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; background: var(--surface-2); flex: none; }
+.steps .done b { background: var(--income); color: #fff; }
+.steps .cur b { background: var(--accent); color: var(--accent-ink); }
+
+/* closing sections */
+ol.flow { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
+.decide { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.decide .note p { color: var(--muted); font-size: 14px; }
+.decide .rec { font-size: 13px; color: var(--accent); font-weight: 600; }
+code { font-size: 0.9em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">Đặc tả sản phẩm · bản nháp 1 · 27/10/2026</span>
+  <h1>Ví Gọn: app quản lý tài chính cá nhân</h1>
+  <p class="lead">Kế hoạch chi tiết 16 tính năng, chia 4 giai đoạn. Mỗi tính năng có mục tiêu, chức năng, quy tắc nghiệp vụ, tiêu chí nghiệm thu và màn hình mô phỏng trên điện thoại. Bạn duyệt xong thì gửi repo mới, tôi bắt đầu dựng giai đoạn 1.</p>
+  <div class="meta">
+    <span class="tag">Web app chạy trên điện thoại</span>
+    <span class="tag">Node.js + Express + Neon Postgres + Vercel</span>
+    <span class="tag">Tiền tệ: VND, lưu số nguyên</span>
+    <span class="tag">Tên "Ví Gọn" là tên tạm</span>
+  </div>
+</header>
+
+<section class="stack">
+  <h2>Toàn bộ tính năng</h2>
+  <p class="muted">Ước lượng theo tuần làm việc của 1 người (tôi làm, bạn duyệt). "Phải có" là phần tối thiểu để app dùng được.</p>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Mã</th><th>Tính năng</th><th>Giai đoạn</th><th>Ưu tiên</th><th>Công</th></tr></thead>
+    <tbody>
+      <tr><td class="num">F01</td><td><a href="#f01">Đăng ký và làm quen</a></td><td>1 · MVP</td><td><span class="pri must">Phải có</span></td><td>M</td></tr>
+      <tr><td class="num">F02</td><td><a href="#f02">Tổng quan (trang chủ)</a></td><td>1 · MVP</td><td><span class="pri must">Phải có</span></td><td>M</td></tr>
+      <tr><td class="num">F03</td><td><a href="#f03">Thêm giao dịch nhanh</a></td><td>1 · MVP</td><td><span class="pri must">Phải có</span></td><td>L</td></tr>
+      <tr><td class="num">F04</td><td><a href="#f04">Sổ giao dịch</a></td><td>1 · MVP</td><td><span class="pri must">Phải có</span></td><td>M</td></tr>
+      <tr><td class="num">F05</td><td><a href="#f05">Ví và chuyển tiền giữa ví</a></td><td>1 · MVP</td><td><span class="pri must">Phải có</span></td><td>M</td></tr>
+      <tr><td class="num">F06</td><td><a href="#f06">Danh mục</a></td><td>1 · MVP</td><td><span class="pri must">Phải có</span></td><td>S</td></tr>
+      <tr><td class="num">F07</td><td><a href="#f07">Báo cáo</a></td><td>1 · MVP</td><td><span class="pri must">Phải có</span></td><td>M</td></tr>
+      <tr><td class="num">F08</td><td><a href="#f08">Tài khoản, bảo mật, dữ liệu</a></td><td>1 · MVP</td><td><span class="pri must">Phải có</span></td><td>S</td></tr>
+      <tr><td class="num">F09</td><td><a href="#f09">Ngân sách tháng</a></td><td>2</td><td><span class="pri should">Nên có</span></td><td>M</td></tr>
+      <tr><td class="num">F10</td><td><a href="#f10">Mục tiêu tiết kiệm</a></td><td>2</td><td><span class="pri should">Nên có</span></td><td>S</td></tr>
+      <tr><td class="num">F11</td><td><a href="#f11">Giao dịch định kỳ</a></td><td>2</td><td><span class="pri should">Nên có</span></td><td>S</td></tr>
+      <tr><td class="num">F12</td><td><a href="#f12">Liên kết ngân hàng, tự ghi giao dịch</a></td><td>3</td><td><span class="pri should">Nên có</span></td><td>L</td></tr>
+      <tr><td class="num">F13</td><td><a href="#f13">Quét hoá đơn</a></td><td>3</td><td><span class="pri later">Để sau</span></td><td>S</td></tr>
+      <tr><td class="num">F14</td><td><a href="#f14">Sổ chung gia đình</a></td><td>4</td><td><span class="pri later">Để sau</span></td><td>L</td></tr>
+      <tr><td class="num">F15</td><td><a href="#f15">Chia tiền nhóm</a></td><td>4</td><td><span class="pri later">Để sau</span></td><td>M</td></tr>
+      <tr><td class="num">F16</td><td><a href="#f16">Sổ nợ (cho mượn, đi vay)</a></td><td>4</td><td><span class="pri later">Để sau</span></td><td>S</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="muted" style="font-size:13px">Công: S ≈ 2–3 ngày, M ≈ 4–5 ngày, L ≈ 1–1,5 tuần. Tổng dự kiến: giai đoạn 1 khoảng 4 tuần, giai đoạn 2 khoảng 2 tuần, giai đoạn 3 khoảng 2–3 tuần, giai đoạn 4 khoảng 3 tuần.</p>
+</section>
+
+<section class="stack">
+  <h2>Nguyên tắc UX chung</h2>
+  <div class="grid2">
+    <div class="note"><b>Ghi 1 khoản dưới 10 giây</b><span class="muted">Nút + luôn ở giữa thanh dưới. Mở ra là con trỏ nằm sẵn ở ô số tiền, bàn phím số riêng có phím "000".</span></div>
+    <div class="note"><b>Dùng được bằng một tay</b><span class="muted">Mọi nút chính nằm ở nửa dưới màn hình. Điều hướng bằng 5 tab ở đáy.</span></div>
+    <div class="note"><b>Màu chỉ để báo trạng thái</b><span class="muted">Xanh lá là thu, cam đỏ là chi, vàng là sắp vượt, đỏ là đã vượt. Màu chủ đạo xanh ngọc chỉ dùng cho nút và mục đang chọn.</span></div>
+    <div class="note"><b>Số tiền luôn dễ đọc</b><span class="muted">Dấu chấm phân cách hàng nghìn (1.250.000 ₫), chữ số đều nhau để các cột thẳng hàng, số dư lớn nằm trên cùng.</span></div>
+    <div class="note"><b>Xoá thì hoàn tác được</b><span class="muted">Xoá giao dịch hiện thông báo "Đã xoá · Hoàn tác" trong 5 giây, không hỏi xác nhận rườm rà.</span></div>
+    <div class="note"><b>Có chế độ tối</b><span class="muted">Theo cài đặt của máy, đổi tay được trong mục Tôi. Các màn mô phỏng bên dưới tự đổi theo giao diện của bạn.</span></div>
+  </div>
+</section>
+
+<section class="stack">
+  <h2>Điều hướng và giao diện</h2>
+  <div class="grid2">
+    <div class="note">
+      <b>Thanh tab dưới cùng</b>
+      <span class="muted"><b>Tổng quan</b> (trang chủ, vào báo cáo) · <b>Sổ</b> (danh sách giao dịch) · <b>＋</b> (thêm nhanh) · <b>Kế hoạch</b> (ngân sách, mục tiêu, định kỳ) · <b>Tôi</b> (ví, danh mục, cài đặt).</span>
+    </div>
+    <div class="note">
+      <b>Chữ</b>
+      <span class="muted">Be Vietnam Pro, phông thiết kế riêng cho tiếng Việt nên dấu không bị lệch. Cỡ chữ nội dung 15px, số dư lớn 28px đậm.</span>
+    </div>
+  </div>
+  <div class="swatches">
+    <div class="sw"><i style="background:var(--accent)"></i><span>Chủ đạo<br><span class="muted">nút, mục chọn</span></span></div>
+    <div class="sw"><i style="background:var(--income)"></i><span>Thu<br><span class="muted">tiền vào</span></span></div>
+    <div class="sw"><i style="background:var(--expense)"></i><span>Chi<br><span class="muted">tiền ra, vượt mức</span></span></div>
+    <div class="sw"><i style="background:var(--warn)"></i><span>Cảnh báo<br><span class="muted">sắp vượt</span></span></div>
+    <div class="sw"><i style="background:var(--surface)"></i><span>Nền thẻ<br><span class="muted">khối nội dung</span></span></div>
+    <div class="sw"><i style="background:var(--bg)"></i><span>Nền trang<br><span class="muted">xám ngả xanh</span></span></div>
+  </div>
+</section>
+
+<!-- ================= GIAI ĐOẠN 1 ================= -->
+<section>
+  <div class="phase"><span class="eyebrow">Giai đoạn 1 · khoảng 4 tuần</span><h2>MVP: ghi tay, dùng được ngay</h2></div>
+
+  <!-- F01 -->
+  <article class="feature" id="f01">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F01</span><span class="pri must">Phải có</span></div><h3>Đăng ký và làm quen</h3></div>
+      <p class="goal">Người mới vào app, tạo xong ví đầu tiên trong dưới 1 phút.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Đăng ký bằng email và mật khẩu (ít nhất 8 ký tự), gửi email xác minh.</li>
+        <li>Đăng nhập, quên mật khẩu qua email, giữ đăng nhập 30 ngày trên máy quen.</li>
+        <li>Làm quen 3 bước: chọn mục đích dùng → tạo ví đầu tiên kèm số dư hiện có → chọn bộ danh mục mặc định.</li>
+        <li>Bỏ qua được bước 1 và 3, bước 2 bắt buộc vì không có ví thì không ghi được giao dịch.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Mỗi email chỉ một tài khoản. Khoá đăng nhập 15 phút sau 5 lần sai (dùng lại từ app 5AM).</li>
+        <li>Chưa xác minh email vẫn dùng được, nhưng không bật được liên kết ngân hàng (F12).</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Đăng ký xong được đưa thẳng vào bước làm quen, không phải đăng nhập lại.</li>
+        <li>Làm quen xong thấy trang Tổng quan với đúng số dư vừa nhập.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="dots"><i></i><i class="on"></i><i></i></div>
+            <span class="lbl">Bước 2/3</span>
+            <b style="font-size:16px;line-height:1.3">Bạn đang có bao nhiêu tiền?</b>
+            <span class="muted">Tạo ví đầu tiên. Thêm ví khác sau cũng được.</span>
+            <div class="chips"><span class="chip on">Tiền mặt</span><span class="chip">Ngân hàng</span><span class="chip">Ví điện tử</span><span class="chip">Thẻ tín dụng</span></div>
+            <div class="inp"><span class="lbl">Tên ví</span><b>Tiền mặt</b></div>
+            <div class="inp focus"><span class="lbl">Số dư hiện tại</span><b class="m-big" style="font-size:18px">1.250.000 ₫</b></div>
+            <div style="margin-top:auto" class="stack"><div class="btn">Tiếp tục</div><span class="lbl" style="text-align:center">Đổi số dư sau trong mục Tôi › Ví</span></div>
+          </div>
+        </div>
+        <p class="mock-cap">Bước 2 của phần làm quen: tạo ví đầu tiên</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F02 -->
+  <article class="feature" id="f02">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F02</span><span class="pri must">Phải có</span></div><h3>Tổng quan (trang chủ)</h3></div>
+      <p class="goal">Mở app là biết ngay: đang có bao nhiêu, tháng này thu chi ra sao, có gì cần để ý.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Tổng số dư mọi ví, bấm vào để xem từng ví. Có nút ẩn số tiền khi đang ở chỗ đông người.</li>
+        <li>Thu, chi, còn lại của tháng đang chọn; vuốt ngang để đổi tháng.</li>
+        <li>Thẻ cảnh báo: ngân sách sắp vượt, giao dịch tự động chờ xác nhận, khoản định kỳ sắp tới.</li>
+        <li>5 giao dịch gần nhất, bấm "Xem tất cả" sang tab Sổ.</li>
+        <li>Lối vào Báo cáo (F07).</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Tổng số dư cộng cả thẻ tín dụng (số âm). Ví đã ẩn không tính.</li>
+        <li>Chuyển tiền giữa hai ví không tính là thu hay chi.</li>
+        <li>Tháng tính theo giờ Việt Nam, từ ngày 1 đến cuối tháng. Đổi ngày bắt đầu (ví dụ ngày nhận lương) để giai đoạn 2.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Thêm một khoản chi 50.000 ₫ thì số dư, tổng chi và danh sách gần nhất cập nhật ngay, không cần tải lại.</li>
+        <li>Trang mở trong dưới 1,5 giây trên mạng 4G.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Tháng 10/2026</b><span class="ic">◐</span></div>
+            <div class="m-card m-hero">
+              <span class="lbl">Tổng số dư · 5 ví</span>
+              <span class="m-big">18.420.000 ₫</span>
+              <div class="split">
+                <div><span class="lbl">Thu</span><br><b class="amt in">+15.800.000</b></div>
+                <div><span class="lbl">Chi</span><br><b class="amt out">−9.610.000</b></div>
+              </div>
+            </div>
+            <div class="banner warn"><b>!</b><span>Ăn uống đã dùng 86% ngân sách, còn 5 ngày</span></div>
+            <div class="m-card">
+              <div class="m-row"><b>Gần đây</b><span class="lbl" style="color:var(--accent)">Xem tất cả</span></div>
+              <div class="tx"><span class="cat k2">Ă</span><span class="t"><b>Cơm trưa</b><span class="lbl">Tiền mặt · 12:05</span></span><span class="amt out">−45.000</span></div>
+              <div class="tx"><span class="cat k3">Đ</span><span class="t"><b>Grab về nhà</b><span class="lbl">Techcombank · tự động</span></span><span class="amt out">−56.000</span></div>
+              <div class="tx"><span class="cat k1">L</span><span class="t"><b>Lương tháng 10</b><span class="lbl">Techcombank · 10/10</span></span><span class="amt in">+15.000.000</span></div>
+            </div>
+          </div>
+          <div class="ph-tabs"><span class="on">Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span>Kế hoạch</span><span>Tôi</span></div>
+        </div>
+        <p class="mock-cap">Trang chủ với thẻ số dư, cảnh báo và giao dịch gần đây</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F03 -->
+  <article class="feature" id="f03">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F03</span><span class="pri must">Phải có</span></div><h3>Thêm giao dịch nhanh</h3></div>
+      <p class="goal">Tính năng dùng nhiều nhất. Mục tiêu là 3 lần chạm: gõ số tiền → chọn danh mục → Lưu.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Bảng trượt lên từ nút +, chọn 1 trong 3 loại: Chi, Thu, Chuyển giữa ví.</li>
+        <li>Bàn phím số riêng có phím <code>000</code> và các nút nhanh 20k, 50k, 100k, 200k.</li>
+        <li>Danh mục hiện 9 mục dùng nhiều nhất của bạn, kèm nút "Thêm" để xem tất cả.</li>
+        <li>Ví mặc định là ví vừa dùng lần trước, ngày mặc định là hôm nay; bấm vào để đổi.</li>
+        <li>Ghi chú tuỳ chọn. Ghi chú quen thuộc ("Cơm trưa") gợi ý luôn danh mục và số tiền lần trước.</li>
+        <li>Sửa và xoá giao dịch đã lưu; xoá có hoàn tác 5 giây.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Số tiền là số nguyên VND, lớn hơn 0, tối đa 999.999.999.999 ₫.</li>
+        <li>Chuyển giữa ví: ví nguồn khác ví đích, tạo 2 bút toán liên kết, xoá một là xoá cả hai.</li>
+        <li>Cho phép ghi ngày trong quá khứ; ngày tương lai chỉ dùng cho giao dịch định kỳ (F11).</li>
+        <li>Chi vượt số dư vẫn cho lưu nhưng hiện cảnh báo, vì người dùng hay quên ghi khoản thu.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Gõ 4, 5, 000 rồi bấm Ăn uống, Lưu: ra giao dịch chi 45.000 ₫ hôm nay ở ví vừa dùng.</li>
+        <li>Người dùng thử ghi 1 khoản trung bình dưới 10 giây (đo khi thử với 5 người).</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body dim" style="padding-bottom:12px">
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="seg"><span class="on">Chi</span><span>Thu</span><span>Chuyển</span></div>
+              <div style="text-align:center"><span class="m-big out" style="font-size:26px">45.000 ₫</span></div>
+              <div class="chips" style="justify-content:center"><span class="chip">20k</span><span class="chip">50k</span><span class="chip">100k</span><span class="chip">200k</span></div>
+              <div class="catgrid">
+                <span class="on"><i class="cat k2">Ă</i>Ăn uống</span><span><i class="cat k3">Đ</i>Đi lại</span><span><i class="cat k4">M</i>Mua sắm</span><span><i class="cat k1">N</i>Nhà ở</span><span><i class="cat k5">…</i>Thêm</span>
+              </div>
+              <div class="m-row"><span class="chip">Tiền mặt ▾</span><span class="chip">Hôm nay ▾</span><span class="chip">+ Ghi chú</span></div>
+              <div class="keys">
+                <span>1</span><span>2</span><span>3</span><span>⌫</span>
+                <span>4</span><span>5</span><span>6</span><span class="ok">Lưu</span>
+                <span>7</span><span>8</span><span>9</span>
+                <span>000</span><span>0</span><span>,</span><span style="font-size:10px">Lịch</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="mock-cap">Bảng nhập nhanh: số tiền, danh mục, ví, ngày nằm gọn trên một màn</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F04 -->
+  <article class="feature" id="f04">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F04</span><span class="pri must">Phải có</span></div><h3>Sổ giao dịch</h3></div>
+      <p class="goal">Tìm lại bất kỳ khoản nào trong vài giây và sửa khi ghi nhầm.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Danh sách nhóm theo ngày, mỗi ngày hiện tổng chi và tổng thu của ngày đó.</li>
+        <li>Tìm theo ghi chú hoặc số tiền. Lọc theo khoảng thời gian, ví, danh mục, loại (thu, chi, chuyển), nguồn (tay, tự động).</li>
+        <li>Vuốt trái để xoá, bấm vào để sửa.</li>
+        <li>Tải thêm khi cuộn xuống, mỗi lần 50 dòng.</li>
+        <li>Xuất Excel theo đúng bộ lọc đang chọn.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Giao dịch tự động (F12) có nhãn "Tự động"; sửa được danh mục và ghi chú nhưng không sửa số tiền.</li>
+        <li>Bộ lọc giữ nguyên khi chuyển tab rồi quay lại.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Gõ "grab" ra mọi giao dịch có chữ Grab, không phân biệt hoa thường và có dấu hay không.</li>
+        <li>File Excel xuất ra có đúng số dòng và tổng như trên màn hình.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Sổ giao dịch</b><span class="ic">⇩</span></div>
+            <div class="inp"><span class="muted">Tìm ghi chú, số tiền…</span></div>
+            <div class="chips"><span class="chip on">Tháng này</span><span class="chip">Mọi ví ▾</span><span class="chip">Danh mục ▾</span><span class="chip">Chi</span></div>
+            <div>
+              <div class="day"><span>HÔM NAY · 27/10</span><span class="num">−101.000</span></div>
+              <div class="tx"><span class="cat k2">Ă</span><span class="t"><b>Cơm trưa</b><span class="lbl">Tiền mặt</span></span><span class="amt out">−45.000</span></div>
+              <div class="tx"><span class="cat k3">Đ</span><span class="t"><b>GRAB*A-7Q2XK</b><span class="lbl">Techcombank · <span class="chip ok" style="padding:0 5px">Tự động</span></span></span><span class="amt out">−56.000</span></div>
+              <div class="day"><span>THỨ HAI · 26/10</span><span class="num">−1.320.000</span></div>
+              <div class="tx"><span class="cat k4">M</span><span class="t"><b>Giày chạy bộ</b><span class="lbl">Thẻ tín dụng</span></span><span class="amt out">−1.250.000</span></div>
+              <div class="tx"><span class="cat k2">Ă</span><span class="t"><b>Cà phê</b><span class="lbl">MoMo</span></span><span class="amt out">−70.000</span></div>
+              <div class="day"><span>CHỦ NHẬT · 25/10</span><span class="num">+500.000</span></div>
+              <div class="tx"><span class="cat k5">K</span><span class="t"><b>Bán đồ cũ</b><span class="lbl">MoMo</span></span><span class="amt in">+500.000</span></div>
+            </div>
+          </div>
+          <div class="ph-tabs"><span>Tổng quan</span><span class="on">Sổ</span><span class="fab"><b>+</b></span><span>Kế hoạch</span><span>Tôi</span></div>
+        </div>
+        <p class="mock-cap">Nhóm theo ngày, có tổng từng ngày và nhãn giao dịch tự động</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F05 -->
+  <article class="feature" id="f05">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F05</span><span class="pri must">Phải có</span></div><h3>Ví và chuyển tiền giữa ví</h3></div>
+      <p class="goal">Biết tiền đang nằm ở đâu: tiền mặt, từng ngân hàng, ví điện tử, thẻ tín dụng.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Thêm, sửa, ẩn ví. Loại ví: Tiền mặt, Ngân hàng, Ví điện tử, Thẻ tín dụng, Tiết kiệm.</li>
+        <li>Mỗi ví có tên, màu, số dư đầu và lựa chọn "không tính vào tổng" (ví dụ tiền giữ hộ).</li>
+        <li>Điều chỉnh số dư: nhập số dư thật, app tự tạo khoản "Điều chỉnh" bằng phần chênh lệch.</li>
+        <li>Thẻ tín dụng hiện dư nợ, hạn mức và ngày đến hạn thanh toán.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Số dư luôn tính bằng số dư đầu cộng các giao dịch, không lưu cứng, nên không bao giờ lệch.</li>
+        <li>Không xoá được ví đã có giao dịch, chỉ ẩn được. Ví ẩn vẫn hiện trong lịch sử.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Chuyển 2.000.000 ₫ từ Techcombank sang Tiết kiệm: ví nguồn giảm, ví đích tăng, tổng số dư không đổi, thu chi tháng không đổi.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Ví của tôi</b><span class="ic">＋</span></div>
+            <div class="m-card"><span class="lbl">Tổng tài sản ròng</span><span class="m-big">18.420.000 ₫</span></div>
+            <div class="m-card">
+              <div class="tx"><span class="cat k5">T</span><span class="t"><b>Tiền mặt</b><span class="lbl">Tiền mặt</span></span><span class="amt">1.250.000</span></div>
+              <div class="tx"><span class="cat k4">T</span><span class="t"><b>Techcombank</b><span class="lbl">Ngân hàng · đã liên kết</span></span><span class="amt">12.870.000</span></div>
+              <div class="tx"><span class="cat k3">M</span><span class="t"><b>MoMo</b><span class="lbl">Ví điện tử</span></span><span class="amt">640.000</span></div>
+              <div class="tx"><span class="cat k1">V</span><span class="t"><b>Tiết kiệm VCB</b><span class="lbl">Tiết kiệm</span></span><span class="amt">8.000.000</span></div>
+              <div class="tx"><span class="cat k2">V</span><span class="t"><b>Thẻ VPBank</b><span class="lbl">Thẻ tín dụng · hạn 15/11</span></span><span class="amt out">−4.340.000</span></div>
+            </div>
+            <div class="split" style="margin-top:auto"><div class="btn ghost">Chuyển tiền</div><div class="btn">Thêm ví</div></div>
+          </div>
+          <div class="ph-tabs"><span>Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span>Kế hoạch</span><span class="on">Tôi</span></div>
+        </div>
+        <p class="mock-cap">Danh sách ví, thẻ tín dụng hiện số âm và ngày đến hạn</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F06 -->
+  <article class="feature" id="f06">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F06</span><span class="pri must">Phải có</span></div><h3>Danh mục</h3></div>
+      <p class="goal">Bộ danh mục sát đời sống người Việt, sửa được theo ý mình.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Bộ mặc định cho chi: Ăn uống, Đi lại, Nhà ở (thuê nhà, điện, nước, mạng), Mua sắm, Sức khoẻ, Học tập, Giải trí, Hiếu hỉ, Gửi bố mẹ, Con cái, Khác.</li>
+        <li>Bộ mặc định cho thu: Lương, Thưởng, Kinh doanh, Được cho, Lãi tiết kiệm, Khác.</li>
+        <li>Danh mục con 1 cấp (ví dụ Nhà ở › Tiền điện). Đổi tên, màu, biểu tượng; kéo để sắp xếp.</li>
+        <li>Gộp hai danh mục: chuyển hết giao dịch sang danh mục còn lại.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Xoá danh mục đang có giao dịch thì phải chọn danh mục nhận lại số giao dịch đó.</li>
+        <li>Báo cáo cộng danh mục con vào danh mục cha.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Gộp "Cà phê" vào "Ăn uống": mọi giao dịch Cà phê chuyển sang Ăn uống, báo cáo tháng cập nhật đúng.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Danh mục</b><span class="ic">＋</span></div>
+            <div class="seg"><span class="on">Chi · 11</span><span>Thu · 6</span></div>
+            <div class="m-card">
+              <div class="tx"><span class="cat k2">Ă</span><span class="t"><b>Ăn uống</b><span class="lbl">Đi chợ · Ăn ngoài · Cà phê</span></span><span class="lbl">⋮⋮</span></div>
+              <div class="tx"><span class="cat k1">N</span><span class="t"><b>Nhà ở</b><span class="lbl">Thuê nhà · Điện · Nước · Mạng</span></span><span class="lbl">⋮⋮</span></div>
+              <div class="tx"><span class="cat k3">Đ</span><span class="t"><b>Đi lại</b><span class="lbl">Xăng · Grab · Gửi xe</span></span><span class="lbl">⋮⋮</span></div>
+              <div class="tx"><span class="cat k4">M</span><span class="t"><b>Mua sắm</b><span class="lbl">Quần áo · Đồ gia dụng</span></span><span class="lbl">⋮⋮</span></div>
+              <div class="tx"><span class="cat k4">H</span><span class="t"><b>Hiếu hỉ</b><span class="lbl">Đám cưới · Đám giỗ · Thăm ốm</span></span><span class="lbl">⋮⋮</span></div>
+              <div class="tx"><span class="cat k1">G</span><span class="t"><b>Gửi bố mẹ</b><span class="lbl">Không có mục con</span></span><span class="lbl">⋮⋮</span></div>
+            </div>
+            <span class="lbl" style="text-align:center">Giữ ⋮⋮ và kéo để sắp xếp</span>
+          </div>
+          <div class="ph-tabs"><span>Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span>Kế hoạch</span><span class="on">Tôi</span></div>
+        </div>
+        <p class="mock-cap">Danh mục kiểu Việt: Hiếu hỉ, Gửi bố mẹ có sẵn</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F07 -->
+  <article class="feature" id="f07">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F07</span><span class="pri must">Phải có</span></div><h3>Báo cáo</h3></div>
+      <p class="goal">Trả lời hai câu hỏi: tiền đi đâu, và tháng này có tốt hơn tháng trước không.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Biểu đồ tròn chi theo danh mục, bấm một phần để xem danh sách giao dịch của danh mục đó.</li>
+        <li>Biểu đồ cột thu và chi 6 tháng gần nhất.</li>
+        <li>Bảng danh mục với số tiền, tỉ lệ và mức tăng giảm so với tháng trước.</li>
+        <li>Chọn kỳ: tháng, quý, năm, hoặc tự chọn từ ngày đến ngày. Lọc theo ví.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Không tính chuyển tiền giữa ví và các khoản điều chỉnh số dư.</li>
+        <li>Tháng đang chạy hiện chú thích "tính đến hôm nay" để không so sai với tháng đã đủ ngày.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Tổng các phần trong biểu đồ tròn bằng đúng tổng chi trên trang Tổng quan cùng kỳ.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Báo cáo</b><span class="chip">Tháng 10 ▾</span></div>
+            <div class="m-card">
+              <div class="m-row"><b>Chi theo danh mục</b><span class="amt out">9.610.000</span></div>
+              <div class="donut-row">
+                <svg width="88" height="88" viewBox="0 0 100 100" role="img" aria-label="Biểu đồ tròn chi tháng 10">
+                  <g transform="rotate(-90 50 50)" fill="none" stroke-width="16">
+                    <circle cx="50" cy="50" r="40" stroke="var(--c1)" stroke-dasharray="91.5 251.33" stroke-dashoffset="0"/>
+                    <circle cx="50" cy="50" r="40" stroke="var(--c2)" stroke-dasharray="90 251.33" stroke-dashoffset="-91.5"/>
+                    <circle cx="50" cy="50" r="40" stroke="var(--c4)" stroke-dasharray="45 251.33" stroke-dashoffset="-181.5"/>
+                    <circle cx="50" cy="50" r="40" stroke="var(--c3)" stroke-dasharray="15.8 251.33" stroke-dashoffset="-226.5"/>
+                    <circle cx="50" cy="50" r="40" stroke="var(--c5)" stroke-dasharray="8.8 251.33" stroke-dashoffset="-242.3"/>
+                  </g>
+                </svg>
+                <ul>
+                  <li><span><i style="background:var(--c1)"></i>Nhà ở</span><span class="num">36%</span></li>
+                  <li><span><i style="background:var(--c2)"></i>Ăn uống</span><span class="num">36%</span></li>
+                  <li><span><i style="background:var(--c4)"></i>Mua sắm</span><span class="num">18%</span></li>
+                  <li><span><i style="background:var(--c3)"></i>Đi lại</span><span class="num">6%</span></li>
+                  <li><span><i style="background:var(--c5)"></i>Khác</span><span class="num">4%</span></li>
+                </ul>
+              </div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><b>6 tháng</b><span class="legend"><span><i style="background:var(--income)"></i>Thu</span><span><i style="background:var(--expense)"></i>Chi</span></span></div>
+              <div class="bars">
+                <div class="ax"><span>18tr</span><span>12tr</span><span>6tr</span><span>0</span></div>
+                <div class="col"><i class="a" style="height:83.3%"></i><i class="b" style="height:71.1%"></i></div>
+                <div class="col"><i class="a" style="height:83.3%"></i><i class="b" style="height:77.2%"></i></div>
+                <div class="col"><i class="a" style="height:91.7%"></i><i class="b" style="height:67.2%"></i></div>
+                <div class="col"><i class="a" style="height:83.3%"></i><i class="b" style="height:81.1%"></i></div>
+                <div class="col"><i class="a" style="height:83.3%"></i><i class="b" style="height:66.1%"></i></div>
+                <div class="col"><i class="a" style="height:87.8%"></i><i class="b" style="height:53.4%"></i></div>
+              </div>
+              <div class="months"><span></span><span>T5</span><span>T6</span><span>T7</span><span>T8</span><span>T9</span><span>T10*</span></div>
+              <span class="lbl">* Tháng 10 tính đến 27/10</span>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span>Ăn uống</span><span><b class="amt">3.440.000</b> <span class="chip bad" style="padding:0 5px">+12%</span></span></div>
+              <div class="m-row"><span>Đi lại</span><span><b class="amt">610.000</b> <span class="chip ok" style="padding:0 5px">−20%</span></span></div>
+            </div>
+          </div>
+        </div>
+        <p class="mock-cap">Biểu đồ tròn theo danh mục, cột 6 tháng, so với tháng trước</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F08 -->
+  <article class="feature" id="f08">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F08</span><span class="pri must">Phải có</span></div><h3>Tài khoản, bảo mật, dữ liệu</h3></div>
+      <p class="goal">Người dùng tin app đủ để ghi tiền thật vào, và luôn lấy lại được dữ liệu của mình.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Đổi tên, email, mật khẩu. Đổi mật khẩu thì đăng xuất mọi máy khác (dùng lại từ app 5AM).</li>
+        <li>Khoá app bằng mã PIN 4–6 số khi mở lại sau 5 phút không dùng.</li>
+        <li>Xuất toàn bộ dữ liệu ra Excel và JSON; nhập lại từ file JSON.</li>
+        <li>Nhập giao dịch từ file Excel mẫu, cho người chuyển từ app khác hoặc từ sổ tay.</li>
+        <li>Xoá tài khoản: xoá vĩnh viễn mọi dữ liệu sau khi nhập lại mật khẩu.</li>
+        <li>Chọn giao diện sáng, tối hoặc theo máy.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Mọi truy vấn dữ liệu đều lọc theo người dùng đang đăng nhập; có bộ test riêng chứng minh người này không đọc được dữ liệu người kia.</li>
+        <li>Xoá tài khoản xong thì trong 24 giờ không còn bản ghi nào của người đó trong database.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Xuất JSON rồi nhập vào một tài khoản mới: số dư từng ví và báo cáo từng tháng giống hệt.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Tôi</b><span class="ic">D</span></div>
+            <div class="m-card"><div class="m-row"><span><b>Lê Thành Đạt</b><br><span class="lbl">Email đã xác minh</span></span><span class="lbl">›</span></div></div>
+            <div class="m-card">
+              <div class="m-row"><span>Ví của tôi</span><span class="lbl">5 ›</span></div>
+              <div class="m-row"><span>Danh mục</span><span class="lbl">17 ›</span></div>
+              <div class="m-row"><span>Liên kết ngân hàng</span><span class="lbl">1 ›</span></div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span>Khoá bằng mã PIN</span><span class="toggle"></span></div>
+              <div class="m-row"><span>Ẩn số tiền ở trang chủ</span><span class="toggle off"></span></div>
+              <div class="m-row"><span>Giao diện</span><span class="lbl">Theo máy ›</span></div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span>Xuất dữ liệu</span><span class="lbl">Excel, JSON ›</span></div>
+              <div class="m-row"><span>Nhập từ file</span><span class="lbl">›</span></div>
+              <div class="m-row"><span class="out">Xoá tài khoản</span><span class="lbl">›</span></div>
+            </div>
+          </div>
+          <div class="ph-tabs"><span>Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span>Kế hoạch</span><span class="on">Tôi</span></div>
+        </div>
+        <p class="mock-cap">Tab Tôi: ví, danh mục, bảo mật, dữ liệu ở một chỗ</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================= GIAI ĐOẠN 2 ================= -->
+<section>
+  <div class="phase"><span class="eyebrow">Giai đoạn 2 · khoảng 2 tuần</span><h2>Kế hoạch: ngân sách, mục tiêu, định kỳ</h2></div>
+
+  <!-- F09 -->
+  <article class="feature" id="f09">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F09</span><span class="pri should">Nên có</span></div><h3>Ngân sách tháng</h3></div>
+      <p class="goal">Đặt trần chi cho từng danh mục và được nhắc trước khi vượt.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Đặt hạn mức tháng cho từng danh mục, hoặc một ngân sách tổng.</li>
+        <li>Thanh tiến độ đổi màu: xanh dưới 80%, vàng từ 80%, đỏ khi vượt 100%.</li>
+        <li>Gợi ý "nên tiêu tối đa X ₫ mỗi ngày" cho số ngày còn lại của tháng.</li>
+        <li>Thông báo qua email khi chạm 80% và 100% (đẩy thông báo trên điện thoại để sau).</li>
+        <li>Lựa chọn chuyển phần chưa tiêu sang tháng sau.</li>
+        <li>Lần đầu tạo: gợi ý hạn mức bằng trung bình chi 3 tháng gần nhất.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Ngân sách áp cho cả danh mục con. Mỗi mốc 80% và 100% chỉ báo 1 lần trong tháng.</li>
+        <li>Mức gợi ý mỗi ngày = phần còn lại chia số ngày còn lại, tính cả hôm nay.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Ăn uống 4.000.000 ₫, đã chi 3.440.000 ₫ vào ngày 27/10: hiện 86%, màu vàng, nên tiêu tối đa 112.000 ₫/ngày.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Kế hoạch</b><span class="ic">＋</span></div>
+            <div class="seg"><span class="on">Ngân sách</span><span>Mục tiêu</span><span>Định kỳ</span></div>
+            <div class="m-card">
+              <div class="m-row"><span class="lbl">Tháng 10 · còn 5 ngày</span><span class="lbl">7.500.000 ₫</span></div>
+              <div class="m-row"><b class="amt">6.010.000 ₫ đã chi</b><span class="chip warn">80%</span></div>
+              <div class="prog"><i class="w" style="width:80%"></i></div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span>Ăn uống</span><span class="amt">3.440.000 / 4.000.000</span></div>
+              <div class="prog"><i class="w" style="width:86%"></i></div>
+              <span class="lbl" style="color:var(--warn)">Nên tiêu tối đa 112.000 ₫/ngày</span>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span>Mua sắm</span><span class="amt">1.720.000 / 1.500.000</span></div>
+              <div class="prog"><i class="b" style="width:100%"></i></div>
+              <span class="lbl" style="color:var(--expense)">Đã vượt 220.000 ₫</span>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span>Đi lại</span><span class="amt">610.000 / 1.200.000</span></div>
+              <div class="prog"><i style="width:51%"></i></div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span>Giải trí</span><span class="amt">240.000 / 800.000</span></div>
+              <div class="prog"><i style="width:30%"></i></div>
+            </div>
+          </div>
+          <div class="ph-tabs"><span>Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span class="on">Kế hoạch</span><span>Tôi</span></div>
+        </div>
+        <p class="mock-cap">Màu thanh tiến độ báo trạng thái, kèm gợi ý mức tiêu mỗi ngày</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F10 -->
+  <article class="feature" id="f10">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F10</span><span class="pri should">Nên có</span></div><h3>Mục tiêu tiết kiệm</h3></div>
+      <p class="goal">Biến một mong muốn (mua xe, quỹ khẩn cấp) thành con số phải để dành mỗi tháng.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Tạo mục tiêu: tên, số tiền cần, hạn, ví giữ tiền (thường là ví Tiết kiệm).</li>
+        <li>Tự tính số cần góp mỗi tháng để kịp hạn.</li>
+        <li>Nút "Góp thêm" tạo khoản chuyển tiền vào ví của mục tiêu.</li>
+        <li>Trạng thái: Đúng tiến độ, Chậm (kèm số còn thiếu), Đã đạt.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Số cần góp mỗi tháng = phần còn thiếu chia số tháng còn lại, tính từ tháng sau đến tháng của hạn.</li>
+        <li>Góp vào mục tiêu là chuyển tiền giữa ví, không tính là chi.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Mục tiêu 50.000.000 ₫, hạn 08/2027, đã có 18.500.000 ₫ vào tháng 10/2026: hiện 37%, cần 3.150.000 ₫/tháng.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Kế hoạch</b><span class="ic">＋</span></div>
+            <div class="seg"><span>Ngân sách</span><span class="on">Mục tiêu</span><span>Định kỳ</span></div>
+            <div class="m-card">
+              <div class="m-row"><b>Mua xe máy</b><span class="chip ok">Đúng tiến độ</span></div>
+              <div class="donut-row">
+                <svg width="72" height="72" viewBox="0 0 100 100" role="img" aria-label="Đạt 37%">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface-2)" stroke-width="12"/>
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="93 251.33" transform="rotate(-90 50 50)"/>
+                  <text x="50" y="56" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">37%</text>
+                </svg>
+                <ul>
+                  <li><span class="lbl">Đã có</span><b class="num">18.500.000</b></li>
+                  <li><span class="lbl">Cần</span><b class="num">50.000.000</b></li>
+                  <li><span class="lbl">Hạn</span><b class="num">08/2027</b></li>
+                </ul>
+              </div>
+              <div class="banner info">Góp 3.150.000 ₫ mỗi tháng để kịp hạn</div>
+              <div class="btn sm">Góp thêm</div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><b>Quỹ khẩn cấp</b><span class="chip warn">Chậm 1.200.000</span></div>
+              <div class="prog"><i class="a" style="width:27%"></i></div>
+              <div class="m-row"><span class="lbl">8.000.000 / 30.000.000 ₫</span><span class="lbl">Hạn 06/2027</span></div>
+            </div>
+          </div>
+          <div class="ph-tabs"><span>Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span class="on">Kế hoạch</span><span>Tôi</span></div>
+        </div>
+        <p class="mock-cap">Mỗi mục tiêu cho biết cần góp bao nhiêu mỗi tháng</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F11 -->
+  <article class="feature" id="f11">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F11</span><span class="pri should">Nên có</span></div><h3>Giao dịch định kỳ</h3></div>
+      <p class="goal">Không phải ghi lại các khoản lặp lại: tiền nhà, lương, cước điện thoại, Netflix.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Tạo quy tắc từ một giao dịch có sẵn hoặc tạo mới: số tiền, danh mục, ví, lặp hằng tháng, tuần hoặc năm.</li>
+        <li>Hai chế độ: tự ghi đúng ngày, hoặc nhắc rồi chờ bấm xác nhận (cho khoản không cố định như tiền điện).</li>
+        <li>Danh sách "Sắp tới trong 7 ngày" hiện ở trang Tổng quan.</li>
+        <li>Tạm dừng hoặc kết thúc quy tắc.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Ngày 31 với tháng ít ngày hơn thì chạy vào ngày cuối tháng.</li>
+        <li>Cron mỗi ngày tạo giao dịch đến hạn; chạy lại không tạo trùng (mỗi kỳ chỉ một lần).</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Tiền nhà 3.500.000 ₫ ngày 5 hằng tháng: sáng ngày 5 có giao dịch, ở đúng ví và danh mục.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Kế hoạch</b><span class="ic">＋</span></div>
+            <div class="seg"><span>Ngân sách</span><span>Mục tiêu</span><span class="on">Định kỳ</span></div>
+            <div class="banner info">Tháng 11 dự kiến: thu 15.000.000 ₫, chi cố định 4.039.000 ₫</div>
+            <div class="m-card">
+              <div class="tx"><span class="cat k1">N</span><span class="t"><b>Tiền nhà</b><span class="lbl">Ngày 5 hằng tháng · tự ghi</span></span><span class="amt out">−3.500.000</span><span class="toggle"></span></div>
+              <div class="tx"><span class="cat k1">L</span><span class="t"><b>Lương</b><span class="lbl">Ngày 10 · tự ghi</span></span><span class="amt in">+15.000.000</span><span class="toggle"></span></div>
+              <div class="tx"><span class="cat k3">C</span><span class="t"><b>Cước 4G</b><span class="lbl">Ngày 12 · tự ghi</span></span><span class="amt out">−139.000</span><span class="toggle"></span></div>
+              <div class="tx"><span class="cat k4">G</span><span class="t"><b>Netflix</b><span class="lbl">Ngày 18 · tự ghi</span></span><span class="amt out">−260.000</span><span class="toggle"></span></div>
+              <div class="tx"><span class="cat k1">Đ</span><span class="t"><b>Tiền điện</b><span class="lbl">Ngày 20 · nhắc xác nhận</span></span><span class="amt out">~ 140.000</span><span class="toggle off"></span></div>
+            </div>
+          </div>
+          <div class="ph-tabs"><span>Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span class="on">Kế hoạch</span><span>Tôi</span></div>
+        </div>
+        <p class="mock-cap">Các khoản lặp lại, bật tắt từng khoản, xem trước tháng sau</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================= GIAI ĐOẠN 3 ================= -->
+<section>
+  <div class="phase"><span class="eyebrow">Giai đoạn 3 · khoảng 2–3 tuần</span><h2>Tự động hoá: điểm khác biệt chính</h2></div>
+
+  <!-- F12 -->
+  <article class="feature" id="f12">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F12</span><span class="pri should">Nên có</span></div><h3>Liên kết ngân hàng, tự ghi giao dịch</h3></div>
+      <p class="goal">Không phải nhớ để ghi: tiền ra vào tài khoản ngân hàng là app tự có giao dịch.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Hướng dẫn từng bước kết nối tài khoản ngân hàng qua dịch vụ báo biến động số dư (SePay hoặc Casso, chốt ở phần cuối).</li>
+        <li>Mỗi người dùng có một địa chỉ nhận dữ liệu và mã bí mật riêng; giao dịch đổ về app qua webhook.</li>
+        <li>Tự gợi ý danh mục theo nội dung chuyển khoản: GRAB → Đi lại, SHOPEE → Mua sắm, "luong" → Lương.</li>
+        <li>Hộp "Chờ xác nhận": giao dịch mới hiện kèm danh mục gợi ý, bấm Đúng hoặc Đổi. Khi đã quen, bật chế độ tự xác nhận.</li>
+        <li>Học từ việc sửa: đổi danh mục cho "HIGHLANDS" một lần thì lần sau tự gợi ý đúng.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Kiểm tra mã bí mật trong mọi lần dữ liệu đổ về; sai thì bỏ qua và ghi nhật ký.</li>
+        <li>Chống trùng: mã giao dịch của ngân hàng là duy nhất. Có giao dịch ghi tay cùng số tiền, cùng ví trong vòng 1 ngày thì hỏi "Gộp với khoản đã ghi?".</li>
+        <li>App chỉ đọc biến động, không bao giờ chuyển tiền thay người dùng.</li>
+        <li>Chỉ lưu 4 số cuối của số tài khoản.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Chuyển khoản thật 10.000 ₫: trong 1 phút có giao dịch trong hộp Chờ xác nhận, đúng ví và số tiền.</li>
+        <li>Gửi lại cùng một dữ liệu 3 lần chỉ tạo 1 giao dịch.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Liên kết ngân hàng</b><span class="ic">?</span></div>
+            <div class="steps">
+              <div class="done"><b>✓</b><span>Tạo tài khoản dịch vụ báo số dư</span></div>
+              <div class="done"><b>✓</b><span>Thêm tài khoản Techcombank ···2019</span></div>
+              <div class="cur"><b>3</b><span>Dán địa chỉ nhận dữ liệu vào dịch vụ</span></div>
+              <div><b>4</b><span>Chuyển thử 10.000 ₫ để kiểm tra</span></div>
+            </div>
+            <div class="inp"><span class="lbl">Địa chỉ nhận dữ liệu của bạn</span><b style="font-size:10px;word-break:break-all">vigon.app/api/hook/u_8f3k…</b></div>
+            <div class="btn sm" style="align-self:flex-start">Copy địa chỉ</div>
+            <span class="lbl">App chỉ đọc biến động số dư, không thể chuyển tiền.</span>
+          </div>
+        </div>
+        <p class="mock-cap">Hướng dẫn kết nối từng bước</p>
+      </div>
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Chờ xác nhận · 3</b><span class="lbl" style="color:var(--accent)">Đúng hết</span></div>
+            <div class="m-card">
+              <div class="m-row"><span class="lbl">Techcombank · 08:12</span><b class="amt out">−56.000</b></div>
+              <b style="font-weight:500">GRAB*A-7Q2XK HCM</b>
+              <div class="m-row"><span class="chip"><i class="cat k3" style="width:14px;height:14px;font-size:8px">Đ</i>Đi lại</span><span class="chips"><span class="btn sm ghost">Đổi</span><span class="btn sm">Đúng</span></span></div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span class="lbl">Techcombank · 07:40</span><b class="amt out">−45.000</b></div>
+              <b style="font-weight:500">HIGHLANDS COFFEE Q3</b>
+              <div class="m-row"><span class="chip"><i class="cat k2" style="width:14px;height:14px;font-size:8px">Ă</i>Ăn uống</span><span class="chips"><span class="btn sm ghost">Đổi</span><span class="btn sm">Đúng</span></span></div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><span class="lbl">Techcombank · hôm qua</span><b class="amt out">−1.250.000</b></div>
+              <b style="font-weight:500">THANH TOAN THE VPBANK</b>
+              <div class="banner info">Có vẻ là chuyển tiền sang Thẻ VPBank, không phải khoản chi</div>
+              <div class="m-row"><span class="chip">Chuyển giữa ví</span><span class="chips"><span class="btn sm ghost">Đổi</span><span class="btn sm">Đúng</span></span></div>
+            </div>
+          </div>
+          <div class="ph-tabs"><span class="on">Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span>Kế hoạch</span><span>Tôi</span></div>
+        </div>
+        <p class="mock-cap">Giao dịch tự về, kèm danh mục gợi ý để xác nhận</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F13 -->
+  <article class="feature" id="f13">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F13</span><span class="pri later">Để sau</span></div><h3>Quét hoá đơn</h3></div>
+      <p class="goal">Chụp hoá đơn siêu thị hay quán ăn là có sẵn số tiền, ngày và tên cửa hàng.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Chụp ảnh hoặc chọn ảnh có sẵn; đọc chữ ngay trên máy (dùng lại Tesseract từ app 5AM).</li>
+        <li>Tìm dòng "Tổng cộng", "Thanh toán", ngày và tên cửa hàng, điền sẵn vào bảng nhập nhanh F03.</li>
+        <li>Lưu ảnh nhỏ đính kèm giao dịch để tra lại.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Luôn để người dùng xem lại trước khi lưu; không đọc được thì để trống, không đoán bừa.</li>
+        <li>Ảnh nén dưới 200KB; xoá giao dịch thì xoá ảnh.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Với 20 hoá đơn mẫu (Co.op, WinMart, Bách Hoá Xanh, quán ăn), ít nhất 15 hoá đơn đọc đúng tổng tiền.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Quét hoá đơn</b><span class="ic">×</span></div>
+            <div class="receipt">
+              <b style="text-align:center">BÁCH HOÁ XANH</b>
+              <span style="text-align:center">CN 245 Lê Văn Sỹ · Q3</span>
+              <span>27/10/2026 18:42</span>
+              <span>Rau muống ......... 12.000</span>
+              <span>Thịt ba chỉ 500g ... 79.000</span>
+              <span>Trứng gà 10 ......... 32.000</span>
+              <span>Sữa tươi 1L ........ 38.000</span>
+              <span><b>TỔNG CỘNG</b> ...... <span class="hl"><b>161.000</b></span></span>
+            </div>
+            <div class="banner info">Đã đọc được số tiền, ngày và cửa hàng. Kiểm tra lại trước khi lưu.</div>
+            <div class="inp"><span class="lbl">Số tiền</span><b class="out">161.000 ₫</b></div>
+            <div class="split" style="gap:6px"><div class="inp"><span class="lbl">Danh mục</span><b>Ăn uống › Đi chợ</b></div><div class="inp"><span class="lbl">Ngày</span><b>27/10</b></div></div>
+            <div class="btn" style="margin-top:auto">Lưu giao dịch</div>
+          </div>
+        </div>
+        <p class="mock-cap">Tổng tiền được tô vàng để người dùng kiểm tra</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================= GIAI ĐOẠN 4 ================= -->
+<section>
+  <div class="phase"><span class="eyebrow">Giai đoạn 4 · khoảng 3 tuần</span><h2>Dùng chung với người khác</h2></div>
+
+  <!-- F14 -->
+  <article class="feature" id="f14">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F14</span><span class="pri later">Để sau</span></div><h3>Sổ chung gia đình</h3></div>
+      <p class="goal">Hai vợ chồng hoặc cả nhà cùng ghi vào một sổ và cùng thấy tổng.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Tạo sổ chung, mời bằng email hoặc link mời có hạn 7 ngày.</li>
+        <li>Quyền: Chủ sổ (toàn quyền), Thành viên (ghi và xem), Người xem (chỉ xem).</li>
+        <li>Mỗi giao dịch hiện ai đã ghi. Báo cáo chia theo người.</li>
+        <li>Chọn ví nào đưa vào sổ chung; ví riêng vẫn riêng.</li>
+        <li>Đổi qua lại giữa "Sổ của tôi" và "Sổ gia đình" ở đầu trang.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Chỉ người ghi hoặc chủ sổ được sửa, xoá một giao dịch.</li>
+        <li>Rời sổ thì giao dịch đã ghi vẫn ở lại trong sổ, hiện tên "Thành viên cũ".</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Vợ ghi một khoản chi, chồng mở app thấy ngay, tổng chi của sổ tăng đúng.</li>
+        <li>Người xem không thấy nút + và không gọi được API ghi.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Sổ gia đình ▾</b><span class="avs"><span class="av k1">Đ</span><span class="av k3">L</span><span class="av k5">＋</span></span></div>
+            <div class="m-card m-hero">
+              <span class="lbl">Chi chung tháng 10</span>
+              <span class="m-big">7.300.000 ₫</span>
+              <div class="split">
+                <div><span class="lbl">Đạt</span><br><b class="amt">4.200.000</b></div>
+                <div><span class="lbl">Liên</span><br><b class="amt">3.100.000</b></div>
+              </div>
+            </div>
+            <div class="m-card">
+              <div class="tx"><span class="av k3" style="margin:0">L</span><span class="t"><b>Đi chợ cuối tuần</b><span class="lbl">Liên · Ăn uống · 26/10</span></span><span class="amt out">−420.000</span></div>
+              <div class="tx"><span class="av k1" style="margin:0">Đ</span><span class="t"><b>Tiền điện tháng 10</b><span class="lbl">Đạt · Nhà ở · 25/10</span></span><span class="amt out">−612.000</span></div>
+              <div class="tx"><span class="av k3" style="margin:0">L</span><span class="t"><b>Sữa cho bé</b><span class="lbl">Liên · Con cái · 24/10</span></span><span class="amt out">−385.000</span></div>
+            </div>
+            <div class="btn ghost">Mời thêm người</div>
+          </div>
+          <div class="ph-tabs"><span class="on">Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span>Kế hoạch</span><span>Tôi</span></div>
+        </div>
+        <p class="mock-cap">Một sổ, nhiều người ghi, thấy ai chi bao nhiêu</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F15 -->
+  <article class="feature" id="f15">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F15</span><span class="pri later">Để sau</span></div><h3>Chia tiền nhóm</h3></div>
+      <p class="goal">Đi chơi nhóm xong biết ngay ai trả ai bao nhiêu, quét mã VietQR là xong.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Tạo chuyến hoặc nhóm, thêm người bằng tên (người kia không cần có tài khoản).</li>
+        <li>Ghi khoản chung: ai trả, chia đều hoặc chia theo số tiền, theo tỉ lệ.</li>
+        <li>Tính gọn số lần chuyển tiền ít nhất để tất toán.</li>
+        <li>Mỗi dòng "A trả B" có mã VietQR đúng số tiền tới tài khoản của B (dùng lại phần VietQR của app 5AM).</li>
+        <li>Đánh dấu đã trả; khoản mình trả hộ tự ghi vào sổ cá nhân.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Chia lẻ thì làm tròn đến 1.000 ₫, phần dư dồn vào người trả.</li>
+        <li>Tổng phải trả luôn bằng tổng phải nhận.</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>4 người, tổng 6.000.000 ₫, Đạt trả 3.300.000 ₫, Hà trả 2.700.000 ₫: Minh và Tú mỗi người trả 1.500.000 ₫, tất toán bằng tối đa 3 lần chuyển.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Đà Lạt 3N2Đ</b><span class="avs"><span class="av k1">Đ</span><span class="av k2">H</span><span class="av k3">M</span><span class="av k4">T</span></span></div>
+            <div class="m-card"><div class="m-row"><span class="lbl">Tổng chi · 4 người</span><b class="amt">6.000.000 ₫</b></div><div class="m-row"><span class="lbl">Mỗi người</span><b class="amt">1.500.000 ₫</b></div></div>
+            <b>Cần chuyển</b>
+            <div class="m-card">
+              <div class="m-row"><span><b>Minh</b> → Đạt</span><b class="amt">1.500.000</b></div>
+              <div class="m-row"><span><b>Tú</b> → Đạt</span><b class="amt">300.000</b></div>
+              <div class="m-row"><span><b>Tú</b> → Hà</span><b class="amt">1.200.000</b></div>
+            </div>
+            <div class="m-card" style="align-items:center">
+              <span class="lbl">Mã của Minh trả Đạt</span>
+              <div class="qr" role="img" aria-label="Mã VietQR minh hoạ"></div>
+              <b class="amt">1.500.000 ₫ · Techcombank</b>
+              <div class="btn sm">Đánh dấu đã trả</div>
+            </div>
+          </div>
+        </div>
+        <p class="mock-cap">Số lần chuyển ít nhất, mỗi dòng có mã VietQR</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- F16 -->
+  <article class="feature" id="f16">
+    <div class="spec">
+      <div class="spec-head"><div class="row"><span class="fid">F16</span><span class="pri later">Để sau</span></div><h3>Sổ nợ (cho mượn, đi vay)</h3></div>
+      <p class="goal">Không quên ai đang nợ mình và mình đang nợ ai.</p>
+      <h4>Chức năng</h4>
+      <ul>
+        <li>Ghi khoản cho mượn hoặc đi vay: người, số tiền, ngày, hạn trả, ghi chú.</li>
+        <li>Ghi trả từng phần; tự tính còn lại.</li>
+        <li>Nhắc qua email trước hạn 3 ngày và đúng ngày hạn.</li>
+        <li>Tổng "Người ta nợ mình" và "Mình nợ người ta" hiện ở mục Ví.</li>
+      </ul>
+      <h4>Quy tắc nghiệp vụ</h4>
+      <ul>
+        <li>Cho mượn làm giảm ví nhưng không tính là chi; nhận lại không tính là thu.</li>
+        <li>Quá hạn chưa trả thì đổi sang nhãn đỏ "Quá hạn".</li>
+      </ul>
+      <h4>Nghiệm thu</h4>
+      <ul class="ac">
+        <li>Cho Nam mượn 2.000.000 ₫, Nam trả 500.000 ₫: còn lại 1.500.000 ₫, báo cáo chi tháng không đổi.</li>
+      </ul>
+    </div>
+    <div class="mocks">
+      <div>
+        <div class="phone"><div class="ph-status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="ph-body">
+            <div class="ph-title"><b>Sổ nợ</b><span class="ic">＋</span></div>
+            <div class="split" style="gap:8px">
+              <div class="m-card"><span class="lbl">Người ta nợ mình</span><b class="amt in">3.700.000</b></div>
+              <div class="m-card"><span class="lbl">Mình nợ</span><b class="amt out">5.000.000</b></div>
+            </div>
+            <div class="seg"><span class="on">Cho mượn</span><span>Đi vay</span></div>
+            <div class="m-card">
+              <div class="m-row"><b>Nam</b><span class="chip warn">Hạn 05/11</span></div>
+              <div class="prog"><i style="width:25%"></i></div>
+              <div class="m-row"><span class="lbl">Đã trả 500.000 / 2.000.000</span><b class="amt">còn 1.500.000</b></div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><b>Chị Thảo</b><span class="chip bad">Quá hạn 12 ngày</span></div>
+              <div class="prog"><i style="width:0%"></i></div>
+              <div class="m-row"><span class="lbl">Mượn 15/09 · tiền đặt cọc</span><b class="amt">còn 1.200.000</b></div>
+            </div>
+            <div class="m-card">
+              <div class="m-row"><b>Hùng</b><span class="chip">Không hạn</span></div>
+              <div class="m-row"><span class="lbl">Ăn tối 20/10</span><b class="amt">còn 1.000.000</b></div>
+            </div>
+          </div>
+          <div class="ph-tabs"><span>Tổng quan</span><span>Sổ</span><span class="fab"><b>+</b></span><span>Kế hoạch</span><span class="on">Tôi</span></div>
+        </div>
+        <p class="mock-cap">Ai còn nợ bao nhiêu, khoản nào quá hạn</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================= Kỹ thuật & chuyển repo ================= -->
+<section class="stack">
+  <h2>Dữ liệu chính</h2>
+  <p class="muted">Tiền lưu bằng số nguyên VND. Mọi bảng có <code>user_id</code> (hoặc <code>book_id</code> khi có sổ chung ở giai đoạn 4).</p>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Bảng</th><th>Lưu gì</th><th>Dùng cho</th></tr></thead>
+    <tbody>
+      <tr><td><code>users</code></td><td>email, mật khẩu đã băm, tên, PIN đã băm, token_version</td><td>F01, F08</td></tr>
+      <tr><td><code>wallets</code></td><td>tên, loại, màu, số dư đầu, ẩn, không tính vào tổng</td><td>F05</td></tr>
+      <tr><td><code>categories</code></td><td>tên, loại thu/chi, danh mục cha, màu, thứ tự</td><td>F06</td></tr>
+      <tr><td><code>transactions</code></td><td>ví, danh mục, loại, số tiền, thời điểm, ghi chú, nguồn (tay/ngân hàng/ảnh), mã ngân hàng (duy nhất), mã cặp chuyển tiền</td><td>F03, F04, F12</td></tr>
+      <tr><td><code>budgets</code></td><td>danh mục, kỳ <code>YYYY-MM</code>, hạn mức, đã báo 80% / 100%</td><td>F09</td></tr>
+      <tr><td><code>goals</code></td><td>tên, số tiền cần, hạn, ví giữ tiền</td><td>F10</td></tr>
+      <tr><td><code>recurring_rules</code></td><td>mẫu giao dịch, chu kỳ, ngày chạy tới, chế độ tự ghi / nhắc</td><td>F11</td></tr>
+      <tr><td><code>bank_links</code>, <code>category_rules</code></td><td>nhà cung cấp, 4 số cuối tài khoản, mã bí mật; từ khoá → danh mục</td><td>F12</td></tr>
+      <tr><td><code>books</code>, <code>book_members</code></td><td>sổ chung, thành viên, quyền</td><td>F14</td></tr>
+      <tr><td><code>groups</code>, <code>group_expenses</code>, <code>debts</code></td><td>chia tiền nhóm, sổ nợ</td><td>F15, F16</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="stack">
+  <h2>Khi bạn gửi repo mới</h2>
+  <ol class="flow">
+    <li>Bạn tạo repo trống trên GitHub (ví dụ <code>vi-gon</code>) và thêm repo vào phiên làm việc này.</li>
+    <li>Tôi dựng khung: Express, kết nối Neon, ESLint, Vitest; chép sang phần dùng lại được từ app 5AM (đăng nhập JWT, khoá đăng nhập, giới hạn số lần gọi API, email, giờ Việt Nam, security headers, VietQR, OCR).</li>
+    <li>Tôi đưa tài liệu này vào repo dưới dạng <code>docs/plan.md</code> để theo dõi cùng code.</li>
+    <li>Bạn tạo project Vercel mới nối với repo, và một database Neon mới (không dùng chung với app 5AM). Tôi sẽ hướng dẫn từng bước.</li>
+    <li>Tôi làm giai đoạn 1 theo thứ tự F01 → F08; mỗi tính năng là một Pull Request riêng có ảnh chụp màn hình để bạn duyệt trên điện thoại.</li>
+  </ol>
+  <p class="muted">App 5AM tại buddy5am.vercel.app giữ nguyên, không bị ảnh hưởng.</p>
+</section>
+
+<section class="stack">
+  <h2>Cần bạn chốt</h2>
+  <div class="decide">
+    <div class="note"><b>Tên app</b><p>"Ví Gọn" đang là tên tạm. Tên ảnh hưởng tên repo và tên miền.</p><span class="rec">Đề xuất: chốt tên trước khi tạo repo</span></div>
+    <div class="note"><b>Đăng nhập bằng Google</b><p>Tiện cho người dùng nhưng cần thêm cấu hình Google Cloud.</p><span class="rec">Đề xuất: để sang giai đoạn 2</span></div>
+    <div class="note"><b>Dịch vụ báo số dư cho F12</b><p>SePay hoặc Casso. Cả hai có gói miễn phí giới hạn và hỗ trợ tài khoản cá nhân; tôi sẽ so kỹ giá và số ngân hàng hỗ trợ trước khi làm giai đoạn 3.</p><span class="rec">Đề xuất: quyết lúc bắt đầu giai đoạn 3</span></div>
+    <div class="note"><b>Sổ chung có cần sớm không</b><p>Nếu người dùng chính là vợ chồng thì nên đưa F14 lên giai đoạn 2, vì thêm sổ chung sau sẽ phải sửa lại cấu trúc dữ liệu.</p><span class="rec">Đề xuất: thiết kế dữ liệu sẵn cho sổ chung từ đầu, làm giao diện sau</span></div>
+    <div class="note"><b>Miễn phí hay thu phí</b><p>Ảnh hưởng tới việc có cần phần gói cước, thanh toán hay không.</p><span class="rec">Đề xuất: miễn phí hết giai đoạn 1–2, quyết sau khi có người dùng thật</span></div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
