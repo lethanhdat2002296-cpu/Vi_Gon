@@ -4,6 +4,8 @@
   --income:#1C7C45; --expense:#B6452A; --warn:#A86A12;
   --ok-soft:#DDF0E4; --warn-soft:#FBEFD9; --danger-soft:#F8E1DA;
   --c5:#9AA79F; --shadow: 0 10px 30px rgba(10, 30, 25, 0.12);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s-other:#B9C2BC;
+  --bar-in:#1baf7a; --bar-out:#eb6834;
   --font: "Be Vietnam Pro", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   color-scheme: light;
 }
@@ -14,6 +16,8 @@
     --income:#5CC98A; --expense:#EE8A6E; --warn:#E3AE55;
     --ok-soft:#173326; --warn-soft:#3A2E17; --danger-soft:#3D221B;
     --c5:#6B7A73; --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s-other:#4A5751;
+    --bar-in:#199e70; --bar-out:#d95926;
     color-scheme: dark;
   }
 }
@@ -23,6 +27,8 @@
   --income:#5CC98A; --expense:#EE8A6E; --warn:#E3AE55;
   --ok-soft:#173326; --warn-soft:#3A2E17; --danger-soft:#3D221B;
   --c5:#6B7A73; --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s-other:#4A5751;
+  --bar-in:#199e70; --bar-out:#d95926;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -240,3 +246,58 @@ details[open] > summary { margin-bottom: 8px; }
 .toast.warn { background: var(--warn); color: #fff; }
 .toast.err { background: var(--expense); color: #fff; }
 .toast-act { border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; white-space: nowrap; }
+
+/* ============ Bổ sung Bước 4 ============ */
+.icon-btn.sm { width: 34px; height: 34px; font-size: 20px; border: 0; cursor: pointer; }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+button.icon-btn { border: 0; cursor: pointer; font-family: inherit; }
+.cat.neutral { background: var(--c5); }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 0 6px; margin-right: 6px; }
+.plain-link { color: inherit; justify-content: space-between; font-weight: 500; }
+.month-card { gap: 12px; touch-action: pan-y; user-select: none; }
+.triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.triple > div { display: flex; flex-direction: column; min-width: 0; }
+.triple b { font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-row { display: flex; gap: 8px; align-items: center; }
+.search { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 12px; font: inherit; color: var(--ink); }
+.search:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.chip.on-soft { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.swipe { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
+.swipe:last-child { border-bottom: 0; }
+.swipe .tx { border-bottom: 0; background: var(--surface); position: relative; touch-action: pan-y; transition: transform 0.15s; }
+.swipe-bg { position: absolute; inset: 0; background: var(--expense); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; padding-right: 16px; }
+.period { padding: 0 2px; }
+.tip { color: var(--muted); min-height: 1.5em; }
+
+/* Biểu đồ */
+.donut-row { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.donut { width: 180px; height: 180px; flex: none; align-self: center; }
+.donut .slice { stroke: var(--surface); stroke-width: 2; cursor: pointer; }
+.donut .slice:hover, .donut .slice:focus { opacity: 0.85; outline: none; }
+.donut-lbl { font-size: 13px; fill: var(--muted); }
+.donut-val { font-size: 20px; font-weight: 700; fill: var(--ink); }
+.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.legend-row { display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); padding: 5px 0; cursor: pointer; text-align: left; }
+.legend-row:disabled { cursor: default; color: var(--ink); }
+.legend-row .grow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.legend-row i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.legend-row .amt { font-size: 13px; }
+.bars { width: 100%; height: auto; display: block; }
+.bars .grid { stroke: var(--line); stroke-width: 1; }
+.bars .axis { stroke: var(--muted); stroke-width: 1; }
+.bars .tick { font-size: 10px; fill: var(--muted); }
+.bars .tick.strong { fill: var(--ink); font-weight: 600; }
+.bars .bar-in { fill: var(--bar-in); }
+.bars .bar-out { fill: var(--bar-out); }
+.bars .hit { fill: transparent; cursor: pointer; }
+.bars .hit:focus { outline: none; fill: var(--accent-soft); fill-opacity: 0.35; }
+.legend-inline { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.legend-inline i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-left: 6px; }
+.bar-in-dot { background: var(--bar-in); }
+.bar-out-dot { background: var(--bar-out); }
+.table-wrap { overflow-x: auto; margin: 0 -4px; }
+.rtable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rtable th { font-size: 12px; color: var(--muted); font-weight: 600; text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.rtable td { padding: 8px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.rtable tr:last-child td { border-bottom: 0; }
+.rtable .num { text-align: right; font-variant-numeric: tabular-nums; }

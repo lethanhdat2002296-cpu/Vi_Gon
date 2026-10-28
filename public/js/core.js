@@ -103,6 +103,11 @@ window.VG = (function () {
     var out = (neg && d !== '0' ? '−' : '') + group(d);
     return opts && opts.symbol === false ? out : out + ' ₫';
   }
+  // Hiển thị số tiền ở danh sách/tổng: che khi người dùng bật "Ẩn số tiền" (F08)
+  function show(n, opts) {
+    if (state.user && state.user.hide_amounts) return opts && opts.symbol === false ? '••••••' : '•••••• ₫';
+    return fmt(n, opts);
+  }
   // "1.250.000" → 1250000; rỗng/sai → null
   function parseAmount(s) {
     var d = String(s || '').replace(/[^\d]/g, '');
@@ -294,7 +299,7 @@ window.VG = (function () {
   return {
     state: state, app: app, h: h, render: render, go: go, api: api, getToken: getToken, setToken: setToken,
     applyTheme: applyTheme, signedIn: signedIn, signOut: signOut, queryParam: queryParam,
-    fmt: fmt, parseAmount: parseAmount, moneyInput: moneyInput, group: group,
+    fmt: fmt, show: show, parseAmount: parseAmount, moneyInput: moneyInput, group: group,
     vnDate: vnDate, today: today, addDays: addDays, dayLabel: dayLabel, shortDate: shortDate,
     toast: toast, hideToast: hideToast, openSheet: openSheet, closeSheet: closeSheet, sheetOpen: sheetOpen,
     field: field, message: message, onSubmit: onSubmit, chips: chips, seg: seg, colorPicker: colorPicker,

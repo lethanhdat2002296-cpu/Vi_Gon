@@ -24,110 +24,9 @@
     VG.render(content, nav);
     return content;
   }
-
-  // ============ DANH SÁCH GIAO DỊCH ============
-  function txTitle(t) {
-    if (t.transfer_group) {
-      return t.kind === 'expense' ? 'Chuyển đến ' + (t.counterpart_wallet_name || 'ví khác') : 'Nhận từ ' + (t.counterpart_wallet_name || 'ví khác');
-    }
-    if (t.source === 'adjust') return 'Điều chỉnh số dư';
-    return t.category_name || 'Chưa phân loại';
-  }
-  function txRow(t) {
-    var neutral = !!t.transfer_group;
-    var sub = [t.note && t.source !== 'adjust' ? t.note : null, t.wallet_name].filter(Boolean).join(' · ');
-    return h('button', { type: 'button', class: 'tx', onclick: function () { VG.quickAdd({ tx: t }); } },
-      neutral ? h('span', { class: 'cat', bg: 'var(--c5)', 'aria-hidden': 'true' }, '⇄') : VG.badge(t.category_icon, t.category_color, txTitle(t)),
-      h('span', { class: 't' }, h('b', null, txTitle(t)), h('span', { class: 'lbl' }, sub)),
-      h('span', { class: 'amt ' + (neutral ? '' : t.kind === 'income' ? 'in' : 'out') }, (t.kind === 'income' ? '+' : '−') + VG.fmt(t.amount, { symbol: false })));
-  }
-  // Nhóm theo ngày (giờ VN), mỗi ngày có tổng thu/chi (không tính chuyển tiền)
-  function txGroups(list, into) {
-    var lastDay = null, dayBox = null, sums = null;
-    list.forEach(function (t) {
-      var d = VG.vnDate(t.occurred_at);
-      if (d !== lastDay) {
-        lastDay = d;
-        sums = h('span', { class: 'lbl' });
-        sums.inc = 0; sums.exp = 0;
-        dayBox = h('div', { class: 'card tight' });
-        into.appendChild(h('div', { class: 'day' }, h('span', null, VG.dayLabel(d)), sums));
-        into.appendChild(dayBox);
-      }
-      if (!t.transfer_group && t.source !== 'adjust') {
-        if (t.kind === 'income') sums.inc += t.amount; else sums.exp += t.amount;
-        sums.textContent = [sums.inc ? '+' + VG.fmt(sums.inc, { symbol: false }) : null, sums.exp ? '−' + VG.fmt(sums.exp, { symbol: false }) : null].filter(Boolean).join('  ');
-      }
-      dayBox.appendChild(txRow(t));
-    });
-  }
-
-  // ============ TỔNG QUAN (bản gọn; đầy đủ ở Bước 4) ============
-  VG.screens.home = function () {
-    var u = VG.state.user;
-    var c = shell('/');
-    var hero = h('div', { class: 'card hero' }, h('span', { class: 'lbl' }, 'Tổng số dư'), h('span', { class: 'big' }, '…'));
-    var recent = h('div', { class: 'stack' }, loading());
-    var verifyBox = null;
-    if (!u.email_verified) {
-      var resend = h('button', { type: 'button', class: 'btn link' }, 'Gửi lại');
-      verifyBox = h('div', { class: 'msg warn' }, h('span', null, 'Kiểm tra hộp thư để xác minh email.'), resend);
-      resend.addEventListener('click', function () {
-        resend.disabled = true;
-        VG.api('POST', '/auth/resend-verify')
-          .then(function () { verifyBox.className = 'msg ok'; verifyBox.textContent = 'Đã gửi lại email xác minh.'; })
-          .catch(function (e) { verifyBox.className = 'msg err'; verifyBox.textContent = e.message; });
-      });
-    }
-    c.appendChild(h('div', { class: 'topbar' }, h('div', { class: 'grow' }, h('span', { class: 'lbl' }, 'Xin chào'), h('h1', null, u.full_name || 'bạn'))));
-    if (!u.onboarded) {
-      c.appendChild(h('div', { class: 'card' }, h('b', null, 'Hoàn tất làm quen'),
-        h('p', { class: 'muted small' }, 'Tạo ví đầu tiên để bắt đầu ghi thu chi.'),
-        h('a', { href: '#/onboarding', class: 'btn' }, 'Tiếp tục')));
-    }
-    c.appendChild(h('a', { href: '#/wallets', class: 'plain' }, hero));
-    if (verifyBox) c.appendChild(verifyBox);
-    c.appendChild(h('div', { class: 'row-between' }, h('b', null, 'Gần đây'), h('a', { href: '#/ledger', class: 'small' }, 'Xem tất cả')));
-    c.appendChild(recent);
-
-    VG.api('GET', '/wallets').then(function (d) {
-      hero.lastChild.textContent = VG.fmt(d.total);
-      hero.appendChild(h('span', { class: 'lbl' }, d.wallets.length + ' ví'));
-    }).catch(function () { hero.lastChild.textContent = '—'; });
-    VG.api('GET', '/transactions?limit=5').then(function (d) {
-      recent.textContent = '';
-      if (!d.transactions.length) {
-        recent.appendChild(h('div', { class: 'card empty' }, h('p', { class: 'muted' }, 'Chưa có giao dịch. Bấm nút + để ghi khoản đầu tiên.')));
-        return;
-      }
-      txGroups(d.transactions, recent);
-    }).catch(function (e) { fail(recent, e); });
-  };
-
-  // ============ SỔ (danh sách đầy đủ; tìm và lọc ở Bước 4) ============
-  VG.screens.ledger = function () {
-    var c = shell('/ledger');
-    c.appendChild(VG.topbar('Sổ giao dịch'));
-    var list = h('div', { class: 'stack' }, loading());
-    var more = h('button', { type: 'button', class: 'btn ghost hidden' }, 'Tải thêm');
-    c.appendChild(list);
-    c.appendChild(more);
-    var cursor = null, all = [];
-    function load() {
-      more.disabled = true;
-      VG.api('GET', '/transactions' + (cursor ? '?cursor=' + encodeURIComponent(cursor) : '')).then(function (d) {
-        all = all.concat(d.transactions);
-        cursor = d.next_cursor;
-        list.textContent = '';
-        if (!all.length) list.appendChild(h('div', { class: 'card empty' }, h('p', { class: 'muted' }, 'Chưa có giao dịch nào.')));
-        else txGroups(all, list);
-        more.className = 'btn ghost' + (cursor ? '' : ' hidden');
-        more.disabled = false;
-      }).catch(function (e) { fail(list, e); });
-    }
-    more.addEventListener('click', load);
-    load();
-  };
+  VG.shell = shell;
+  VG.loading = loading;
+  VG.fail = fail;
 
   VG.screens.plan = function () {
     var c = shell('/plan');
@@ -162,7 +61,7 @@
       (w.exclude_from_total ? ' · ngoài tổng' : '');
     return h('a', { href: '#/wallets/' + w.id, class: 'tx' }, VG.badge(TYPE_ICON[w.type], w.color, w.name),
       h('span', { class: 't' }, h('b', null, w.name), h('span', { class: 'lbl' }, sub)),
-      h('span', { class: 'amt' + (w.balance < 0 ? ' out' : '') }, VG.fmt(w.balance, { symbol: false })));
+      h('span', { class: 'amt' + (w.balance < 0 ? ' out' : '') }, VG.show(w.balance, { symbol: false })));
   }
 
   VG.screens.wallets = function () {
@@ -175,7 +74,7 @@
       body.textContent = '';
       var active = d.wallets.filter(function (w) { return !w.archived; });
       var archived = d.wallets.filter(function (w) { return w.archived; });
-      body.appendChild(h('div', { class: 'card' }, h('span', { class: 'lbl' }, 'Tổng tài sản ròng'), h('span', { class: 'big' }, VG.fmt(d.total))));
+      body.appendChild(h('div', { class: 'card' }, h('span', { class: 'lbl' }, 'Tổng tài sản ròng'), h('span', { class: 'big' }, VG.show(d.total))));
       if (!active.length) body.appendChild(h('div', { class: 'card empty' }, h('p', { class: 'muted' }, 'Chưa có ví. Thêm ví đầu tiên để bắt đầu.')));
       else body.appendChild(h('div', { class: 'card tight' }, active.map(walletRow)));
       if (archived.length) {

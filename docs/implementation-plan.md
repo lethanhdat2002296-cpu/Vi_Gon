@@ -103,10 +103,10 @@ transactions(id, user_id, wallet_id, category_id NULL, kind, amount BIGINT CHECK
 - Chuẩn bị cho sổ chung (F14): thêm cột `book_id` ngay từ đầu, M2 mặc định mỗi user có 1 sổ cá nhân. Truy vấn lọc theo `book_id` mà user là thành viên.
 
 API
-- [ ] `GET/POST/PATCH /api/wallets`, `POST /api/wallets/:id/adjust`, `POST /api/wallets/:id/archive`
-- [ ] `GET/POST/PATCH/DELETE /api/categories`, `POST /api/categories/:id/merge`
-- [ ] `POST /api/transactions` (chi/thu), `POST /api/transfers`, `PATCH/DELETE /api/transactions/:id`, `POST /api/transactions/:id/restore` (hoàn tác)
-- [ ] Seed danh mục mặc định khi tạo tài khoản (danh sách trong plan.md F06).
+- [x] `GET/POST/PATCH /api/wallets`, `POST /api/wallets/:id/adjust`, `POST /api/wallets/:id/archive`
+- [x] `GET/POST/PATCH/DELETE /api/categories`, `POST /api/categories/:id/merge`
+- [x] `POST /api/transactions` (chi/thu), `POST /api/transfers`, `PATCH/DELETE /api/transactions/:id`, `POST /api/transactions/:id/restore` (hoàn tác)
+- [x] Seed danh mục mặc định khi tạo tài khoản (danh sách trong plan.md F06).
 
 Logic (`services/balance.js`, có test)
 - Số dư ví = `opening_balance` + Σ thu − Σ chi ± chuyển tiền, chỉ tính bản ghi chưa xoá.
