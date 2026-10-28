@@ -8,7 +8,7 @@ Stack: Node.js + Express + Neon Postgres, deploy trên Vercel.
 - Kế hoạch triển khai từng bước: [docs/implementation-plan.md](docs/implementation-plan.md)
 - Màn hình mô phỏng: [docs/ui-mockups.html](docs/ui-mockups.html) (tải về mở bằng trình duyệt) hoặc https://claude.ai/artifact/9juSSsiEHbunMYz86zVN6g
 
-Trạng thái: Bước 1–4 xong (đang chạy ở https://walletapps-zeta.vercel.app). Đang làm Bước 5 (bảo mật và dữ liệu) → phát hành MVP `v0.1.0`.
+Trạng thái: giai đoạn 1 (MVP, Bước 1–5) xong, đang chạy ở https://walletapps-zeta.vercel.app. Đang làm giai đoạn 2–4 (Bước 6–8).
 
 ## Chạy local
 
@@ -19,6 +19,8 @@ npm run migrate           # tạo bảng (cần DATABASE_URL); bản Production 
 npm run dev               # http://localhost:3000
 npm test && npm run lint  # chạy trước khi push
 ```
+
+Biến môi trường xem `.env.example`. Cron hằng ngày (`/api/cron/daily`, 06:05 giờ VN) chỉ chạy khi đặt `CRON_SECRET` trên Vercel.
 
 Test API với Postgres thật: đặt `TEST_DATABASE_URL` trỏ vào một database **trống dành riêng cho test** (test sẽ xoá sạch schema), ví dụ
 `TEST_DATABASE_URL=postgres://user@127.0.0.1:5432/vigon_test npm test`. Không đặt biến này thì các test đó được bỏ qua.

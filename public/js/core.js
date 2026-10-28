@@ -194,6 +194,8 @@ window.VG = (function () {
     if (cb) cb();
   }
   function sheetOpen() { return !!sheetEl; }
+  // Esc đóng bảng trượt đang mở
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && sheetEl) closeSheet(); });
 
   // ============ KHỐI GIAO DIỆN DÙNG CHUNG ============
   function field(label, input) {

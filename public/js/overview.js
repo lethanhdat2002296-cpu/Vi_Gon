@@ -145,9 +145,21 @@
       body.appendChild(monthCard);
 
       // Thẻ cảnh báo
+      var ALERT_LINK = { budget_warn: '#/plan?tab=budgets', budget_over: '#/plan?tab=budgets', recurring_pending: '#/plan?tab=recurring' };
       d.alerts.forEach(function (a) {
-        body.appendChild(h('a', { href: '#/wallets/' + a.wallet_id, class: 'msg warn plain-link' }, h('span', null, '⚠️ ' + a.text), h('span', { 'aria-hidden': 'true' }, '›')));
+        var href = ALERT_LINK[a.kind] || '#/wallets/' + a.wallet_id;
+        var cls = a.kind === 'budget_over' ? 'msg err plain-link' : a.kind === 'recurring_pending' ? 'msg info plain-link' : 'msg warn plain-link';
+        body.appendChild(h('a', { href: href, class: cls }, h('span', null, (a.kind === 'recurring_pending' ? '🔔 ' : '⚠️ ') + a.text), h('span', { 'aria-hidden': 'true' }, '›')));
       });
+      // Định kỳ sắp tới trong 7 ngày
+      if (d.upcoming && d.upcoming.length) {
+        body.appendChild(h('a', { href: '#/plan?tab=recurring', class: 'card plain upcoming' },
+          h('div', { class: 'row-between' }, h('b', null, 'Sắp tới trong 7 ngày'), h('span', { class: 'lbl' }, '›')),
+          d.upcoming.map(function (x) {
+            return h('div', { class: 'row-between small' }, h('span', null, VG.shortDate(x.date) + ' · ' + x.name),
+              h('span', { class: 'amt ' + (x.kind === 'income' ? 'in' : 'out') }, (x.kind === 'income' ? '+' : '−') + VG.show(x.amount, { symbol: false })));
+          })));
+      }
 
       if (!u.email_verified) {
         var resend = h('button', { type: 'button', class: 'btn link' }, 'Gửi lại');

@@ -170,12 +170,14 @@ router.delete('/:id', canWrite, async (req, res, next) => {
     const r = id && await db.query(
       `DELETE FROM wallets w WHERE w.id = $1 AND w.book_id = $2
          AND NOT EXISTS (SELECT 1 FROM transactions t WHERE t.wallet_id = w.id)
+         AND NOT EXISTS (SELECT 1 FROM goals g WHERE g.wallet_id = w.id)
+         AND NOT EXISTS (SELECT 1 FROM recurring_rules r WHERE r.wallet_id = w.id)
        RETURNING id`,
       [id, req.bookId]
     );
     if (r && r.rows[0]) return res.json({ ok: true });
     if (!id || !(await loadWallet(req, id))) return res.status(404).json({ error: 'Không tìm thấy ví' });
-    res.status(409).json({ error: 'Ví đã có giao dịch nên chỉ ẩn được, không xoá được.' });
+    res.status(409).json({ error: 'Ví đã có giao dịch hoặc đang dùng cho mục tiêu/định kỳ nên chỉ ẩn được, không xoá được.' });
   } catch (e) { next(e); }
 });
 

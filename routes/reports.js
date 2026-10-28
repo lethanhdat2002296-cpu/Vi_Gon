@@ -8,6 +8,8 @@ const balance = require('../services/balance');
 const { buildFilter, monthBounds, previousPeriod } = require('../services/filters');
 const { currentMonth, addMonths, nowInTimezone } = require('../utils/time');
 const { SELECT_TX, publicTx } = require('./transactions');
+// Nạp muộn để tránh vòng require (planning → transactions → …)
+const planningRoutes = () => require('./planning');
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const n = v => Number(v || 0);
@@ -59,7 +61,19 @@ summary.get('/', async (req, res, next) => {
       }
     }
 
+    // Ngân sách sắp vượt / đã vượt (tháng đang xem) + định kỳ chờ xác nhận + sắp tới 7 ngày
+    const plan = planningRoutes();
+    // Dự phòng khi cron chưa chạy (chưa đặt CRON_SECRET, cron trễ): mở app là ghi định kỳ đến hạn của sổ này
+    await require('../services/recurring').processDueRules(nowInTimezone().date, { bookId: req.bookId });
+    const [budgetList, rec] = await Promise.all([plan.budgetsStatus(req.bookId, month), plan.rulesOverview(req.bookId)]);
+    for (const b of budgetList) {
+      if (b.level === 'over') alerts.push({ kind: 'budget_over', budget_id: b.id, text: `Đã vượt ngân sách ${b.name} ${(b.spent - b.limit).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')} ₫` });
+      else if (b.level === 'warn') alerts.push({ kind: 'budget_warn', budget_id: b.id, text: `Ngân sách ${b.name} đã dùng ${b.percent}%` });
+    }
+    if (rec.pending.length) alerts.push({ kind: 'recurring_pending', text: `${rec.pending.length} khoản định kỳ chờ xác nhận` });
+
     res.json({
+      upcoming: rec.upcoming.slice(0, 5),
       month,
       is_current: month === thisMonth,
       prev_month: addMonths(month, -1),

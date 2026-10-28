@@ -138,11 +138,11 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ## Bước 5 · M4 Bảo mật và dữ liệu (phần còn lại F08) → **phát hành MVP**
 
-- [ ] PIN khoá app (băm bcrypt, kiểm ở client sau 5 phút không dùng + server xác nhận).
-- [ ] Ẩn số tiền, chọn giao diện sáng/tối/theo máy.
-- [ ] Xuất JSON/Excel toàn bộ; nhập JSON; nhập Excel theo file mẫu.
-- [ ] Xoá tài khoản (nhập lại mật khẩu, xoá cứng mọi bảng).
-- [ ] Rà soát: mọi route có `authRequired` + lọc `user_id`/`book_id`; test tổng hợp chống đọc chéo.
+- [x] PIN khoá app (băm bcrypt, kiểm ở client sau 5 phút không dùng + server xác nhận).
+- [x] Ẩn số tiền, chọn giao diện sáng/tối/theo máy.
+- [x] Xuất JSON/Excel toàn bộ; nhập JSON; nhập Excel theo file mẫu.
+- [x] Xoá tài khoản (nhập lại mật khẩu, xoá cứng mọi bảng).
+- [x] Rà soát: mọi route có `authRequired` + lọc `user_id`/`book_id`; test tổng hợp chống đọc chéo.
 
 **Xong khi:** đủ nghiệm thu F08 → gắn tag `v0.1.0`, mời 5–20 người dùng thử.
 
@@ -150,7 +150,7 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ## Bước 6 · M5 Kế hoạch (F09, F10, F11)
 
-- [ ] `004_planning.sql`: `budgets`, `goals`, `recurring_rules`.
+- [ ] `005_planning.sql` (004 đã dùng cho tìm kiếm): `budgets`, `goals`, `recurring_rules`.
 - [ ] API CRUD tương ứng + `GET /api/budgets/status?month=`.
 - [ ] Cron `/api/cron/daily` (Vercel cron 1 lần/ngày, header `Authorization: Bearer CRON_SECRET`): tạo giao dịch định kỳ đến hạn (không trùng), gửi email ngân sách 80%/100%.
 - [ ] Tab Kế hoạch với 3 phần: Ngân sách · Mục tiêu · Định kỳ.
