@@ -90,7 +90,7 @@
 
   // Xem ảnh hoá đơn đã đính (cần header đăng nhập nên tải bằng fetch)
   VG.showReceipt = function (txId) {
-    fetch('/api/transactions/' + txId + '/receipt', { headers: { Authorization: 'Bearer ' + VG.getToken() } }).then(function (r) {
+    fetch('/api/transactions/' + txId + '/receipt', { headers: VG.authHeaders() }).then(function (r) {
       if (!r.ok) throw new Error('Không có ảnh hoá đơn');
       return r.blob();
     }).then(function (b) {

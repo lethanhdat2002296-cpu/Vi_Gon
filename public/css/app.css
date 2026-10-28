@@ -356,3 +356,13 @@ button.icon-btn { border: 0; cursor: pointer; font-family: inherit; }
 .scan-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
 .scan-box .toggle-row { flex: 1; margin-left: 8px; padding: 8px 10px; }
 .receipt-img { width: 100%; border-radius: 12px; border: 1px solid var(--line); }
+
+/* ===== Dùng chung (F14–F16) ===== */
+.book-switch { margin-bottom: 4px; }
+.tag.danger { background: var(--danger-soft); color: var(--expense); align-self: flex-start; }
+.qr-img { width: 100%; max-width: 280px; margin: 0 auto; border-radius: 12px; background: #fff; }
+.debt-row .t { min-width: 0; }
+.debt-row .prog { margin-top: 6px; }
+.plan-row { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.plan-row:last-child { border-bottom: 0; }
+.plan-row .btn.sm { margin-left: 8px; }

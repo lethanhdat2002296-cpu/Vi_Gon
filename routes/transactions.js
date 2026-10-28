@@ -32,6 +32,10 @@ function publicTx(t) {
     status: t.status || 'confirmed',
     suggest_wallet_id: t.suggest_wallet_id ? Number(t.suggest_wallet_id) : null,
     has_receipt: !!t.has_receipt,
+    user_id: t.user_id === null ? null : Number(t.user_id),
+    // Người ghi (sổ chung); đã rời sổ thì hiện "Thành viên cũ"
+    recorded_by: t.recorder_member === undefined ? undefined
+      : t.recorder_member ? (t.recorder_name || (t.recorder_email || '').split('@')[0]) : 'Thành viên cũ',
     // Thông tin hiển thị (JOIN)
     wallet_name: t.wallet_name,
     category_name: t.category_name === undefined ? undefined : t.category_name,
@@ -46,8 +50,11 @@ const SELECT_TX = `
   SELECT t.*, w.name AS wallet_name, c.name AS category_name,
          COALESCE(NULLIF(c.icon, ''), pc.icon) AS category_icon, c.color AS category_color,
          o.wallet_id AS counterpart_wallet_id, ow.name AS counterpart_wallet_name,
-         EXISTS (SELECT 1 FROM transaction_receipts rc WHERE rc.transaction_id = t.id) AS has_receipt
+         EXISTS (SELECT 1 FROM transaction_receipts rc WHERE rc.transaction_id = t.id) AS has_receipt,
+         ru.full_name AS recorder_name, ru.email AS recorder_email, (bm.user_id IS NOT NULL) AS recorder_member
   FROM transactions t
+  LEFT JOIN users ru ON ru.id = t.user_id
+  LEFT JOIN book_members bm ON bm.book_id = t.book_id AND bm.user_id = t.user_id
   JOIN wallets w ON w.id = t.wallet_id
   LEFT JOIN categories c ON c.id = t.category_id
   LEFT JOIN categories pc ON pc.id = c.parent_id
@@ -74,6 +81,13 @@ async function usableCategory(bookId, id, kind) {
 }
 
 // Cảnh báo chi vượt số dư (vẫn cho lưu). Thẻ tín dụng thì số âm là bình thường.
+// Sổ chung: chỉ người ghi hoặc chủ sổ được sửa/xoá. Khoản của sổ nợ sửa ở Sổ nợ.
+function modifyProblem(req, t) {
+  if (t.source === 'debt') return 'Khoản này thuộc Sổ nợ, hãy sửa hoặc xoá ở Sổ nợ';
+  if (req.bookRole !== 'owner' && Number(t.user_id) !== req.user.id) return 'Chỉ người ghi hoặc chủ sổ được sửa, xoá khoản này';
+  return null;
+}
+
 async function overdraftWarning(wallet) {
   if (wallet.type === 'credit') return null;
   const bal = await balance.walletBalance(wallet.id);
@@ -106,8 +120,8 @@ router.get('/', async (req, res, next) => {
     if (!req.query.cursor) {
       const s = await db.query(
         `SELECT COUNT(*)::int AS count,
-                COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'income' AND t.transfer_group IS NULL), 0)::text AS income,
-                COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'expense' AND t.transfer_group IS NULL), 0)::text AS expense
+                COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'income' AND t.transfer_group IS NULL AND t.source <> 'debt'), 0)::text AS income,
+                COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'expense' AND t.transfer_group IS NULL AND t.source <> 'debt'), 0)::text AS expense
          FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
          WHERE ${f.where.join(' AND ')}`,
         f.vals
@@ -166,6 +180,8 @@ router.patch('/:id', canWrite, async (req, res, next) => {
   try {
     const t = await getTx(req.bookId, toId(req.params.id));
     if (!t || t.deleted_at) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    const problem = modifyProblem(req, t);
+    if (problem) return res.status(403).json({ error: problem });
     const b = req.body || {};
     const sets = [];
     const vals = [];
@@ -226,6 +242,8 @@ async function setDeleted(req, res, next, deleted) {
   try {
     const t = await getTx(req.bookId, toId(req.params.id));
     if (!t) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    const problem = modifyProblem(req, t);
+    if (problem) return res.status(403).json({ error: problem });
     const target = t.transfer_group ? 'transfer_group = $2' : 'id = $2';
     const r = await db.query(
       `UPDATE transactions SET deleted_at = ${deleted ? 'NOW()' : 'NULL'}, updated_at = NOW()
@@ -291,4 +309,4 @@ module.exports = router;
 module.exports.transfers = transfers;
 module.exports.SELECT_TX = SELECT_TX;
 module.exports.publicTx = publicTx;
-module.exports.helpers = { insertTransfer, usableWallet, usableCategory, getTx, overdraftWarning };
+module.exports.helpers = { insertTransfer, usableWallet, usableCategory, getTx, overdraftWarning, modifyProblem };

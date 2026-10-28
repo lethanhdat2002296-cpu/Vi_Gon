@@ -103,4 +103,29 @@ async function sendBudgetAlert(toEmail, fullName, b) {
   return send(toEmail, `[Ví Gọn] ${title}`, html, `${title}: ${vnd(b.spent)} / ${vnd(b.limit)}`);
 }
 
-module.exports = { sendVerifyEmail, sendResetPassword, sendBudgetAlert, escapeHtml };
+// ============ MỜI VÀO SỔ CHUNG (link 7 ngày) ============
+async function sendInvite(toEmail, inviterName, bookName, link) {
+  const title = `${inviterName || 'Một người'} mời bạn vào sổ "${bookName}"`;
+  const html = layout(title, `
+    <p>Bấm nút dưới đây để cùng ghi chép sổ <strong>${escapeHtml(bookName)}</strong> trên Ví Gọn:</p>
+    ${button(link, 'Vào sổ chung')}
+    <p>Link có hiệu lực trong <strong>7 ngày</strong> và chỉ dùng được 1 lần.</p>
+  `);
+  return send(toEmail, `[Ví Gọn] ${title}`, html, `Link: ${link}`);
+}
+
+// ============ NHẮC NỢ (trước hạn 3 ngày / đúng hạn) ============
+async function sendDebtReminder(toEmail, fullName, d) {
+  const who = escapeHtml(d.person);
+  const due = d.due_date.split('-').reverse().join('/');
+  const title = d.kind === 'due'
+    ? (d.direction === 'lend' ? `Hôm nay ${d.person} đến hạn trả bạn` : `Hôm nay đến hạn trả ${d.person}`)
+    : (d.direction === 'lend' ? `Còn 3 ngày ${d.person} đến hạn trả bạn` : `Còn 3 ngày đến hạn trả ${d.person}`);
+  const html = layout(title, `
+    <p>${d.direction === 'lend' ? `${who} còn nợ bạn` : `Bạn còn nợ ${who}`} <strong>${vnd(d.remaining)}</strong>, hạn <strong>${due}</strong>.</p>
+    ${button(`${config.APP_URL}/#/debts`, 'Mở sổ nợ')}
+  `).replace('Nếu bạn không yêu cầu, vui lòng bỏ qua email này.', 'Bạn nhận email này vì đã đặt hạn cho khoản nợ trong Ví Gọn.');
+  return send(toEmail, `[Ví Gọn] ${title}`, html, `${title}: ${vnd(d.remaining)}`);
+}
+
+module.exports = { sendVerifyEmail, sendResetPassword, sendBudgetAlert, sendInvite, sendDebtReminder, escapeHtml };

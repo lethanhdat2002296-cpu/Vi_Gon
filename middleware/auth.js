@@ -31,7 +31,7 @@ async function authRequired(req, res, next) {
     return res.status(401).json({ error: 'Phiên đã hết hiệu lực (mật khẩu đã đổi). Vui lòng đăng nhập lại.' });
   }
 
-  req.user = { id: u.id, email: u.email, tv: u.token_version || 0 };
+  req.user = { id: Number(u.id), email: u.email, tv: u.token_version || 0 };
   next();
 }
 

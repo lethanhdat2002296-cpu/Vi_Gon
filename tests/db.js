@@ -38,8 +38,14 @@ export async function startApp() {
   const server = app.listen(0);
   await new Promise(r => server.once('listening', r));
   const base = `http://127.0.0.1:${server.address().port}`;
+  // token có thể là chuỗi, hoặc { token, book } để chọn sổ chung (header X-Book-Id)
   async function call(method, path, body, token) {
     const headers = { 'Content-Type': 'application/json' };
+    if (token && typeof token === 'object') {
+      if (token.book) headers['X-Book-Id'] = String(token.book);
+      if (token.password) headers['X-Confirm-Password'] = token.password;
+      token = token.token;
+    }
     if (token) headers.Authorization = `Bearer ${token}`;
     const r = await fetch(base + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
     return { status: r.status, body: await r.json().catch(() => ({})) };

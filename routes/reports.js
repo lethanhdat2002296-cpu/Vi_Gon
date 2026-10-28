@@ -74,7 +74,12 @@ summary.get('/', async (req, res, next) => {
     const bankPending = await db.query(`SELECT COUNT(*)::int AS n FROM transactions WHERE book_id = $1 AND status = 'pending' AND deleted_at IS NULL`, [req.bookId]);
     if (bankPending.rows[0].n) alerts.unshift({ kind: 'bank_pending', count: bankPending.rows[0].n, text: `${bankPending.rows[0].n} giao dịch ngân hàng chờ xác nhận` });
 
+    const debts = await require('../services/debts').totals(req.bookId, today.date);
+    if (debts.overdue) alerts.push({ kind: 'debt_overdue', text: `${debts.overdue} khoản nợ quá hạn` });
+
     res.json({
+      book: { id: req.bookId, kind: req.bookKind, role: req.bookRole },
+      debts,
       upcoming: rec.upcoming.slice(0, 5),
       month,
       is_current: month === thisMonth,
@@ -181,6 +186,36 @@ reports.get('/monthly', async (req, res, next) => {
       out.push({ month: m, income: n(byMonth[m] && byMonth[m].income), expense: n(byMonth[m] && byMonth[m].expense), partial: m === currentMonth() });
     }
     res.json({ months: out });
+  } catch (e) { next(e); }
+});
+
+// Sổ chung: thu/chi theo người ghi (F14). Người đã rời sổ gộp thành "Thành viên cũ".
+reports.get('/by-member', async (req, res, next) => {
+  try {
+    const thisMonth = monthBounds(currentMonth());
+    const from = req.query.from || thisMonth.from;
+    const to = req.query.to || thisMonth.to;
+    const f = buildFilter(req.bookId, { from, to, wallet: req.query.wallet }, { forReport: true });
+    if (f.error) return res.status(400).json({ error: f.error });
+    const r = await db.query(
+      `SELECT bm.user_id AS member_id, COALESCE(NULLIF(u.full_name, ''), split_part(u.email, '@', 1)) AS name,
+              COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'income'), 0)::text AS income,
+              COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'expense'), 0)::text AS expense,
+              COUNT(*)::int AS count
+       FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
+       LEFT JOIN book_members bm ON bm.book_id = t.book_id AND bm.user_id = t.user_id
+       LEFT JOIN users u ON u.id = bm.user_id
+       WHERE ${f.where.join(' AND ')}
+       GROUP BY 1, 2`,
+      f.vals
+    );
+    const members = r.rows.map(x => ({
+      user_id: x.member_id ? Number(x.member_id) : null,
+      name: x.member_id ? x.name : 'Thành viên cũ',
+      me: Number(x.member_id) === req.user.id,
+      income: n(x.income), expense: n(x.expense), count: x.count
+    })).sort((a, b) => b.expense - a.expense);
+    res.json({ from, to, members });
   } catch (e) { next(e); }
 });
 

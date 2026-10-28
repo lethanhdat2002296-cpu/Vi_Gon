@@ -13,7 +13,7 @@ const router = express.Router();
 router.use(authRequired, bookRequired);
 
 const MAX_ROWS = 50000;
-const SOURCE_LABEL = { manual: 'Ghi tay', adjust: 'Điều chỉnh', transfer: 'Chuyển tiền', bank: 'Tự động', recurring: 'Định kỳ', import: 'Nhập file' };
+const SOURCE_LABEL = { manual: 'Ghi tay', adjust: 'Điều chỉnh', transfer: 'Chuyển tiền', bank: 'Tự động', recurring: 'Định kỳ', import: 'Nhập file', debt: 'Sổ nợ' };
 const TZ = 'Asia/Ho_Chi_Minh';
 
 function vnDateTime(d) {
@@ -26,6 +26,7 @@ function vnDateTime(d) {
 function kindLabel(t) {
   if (t.transfer_group) return t.kind === 'expense' ? 'Chuyển đi' : 'Chuyển đến';
   if (t.source === 'adjust') return 'Điều chỉnh';
+  if (t.source === 'debt') return t.kind === 'expense' ? 'Tiền ra (sổ nợ)' : 'Tiền vào (sổ nợ)';
   return t.kind === 'income' ? 'Thu' : 'Chi';
 }
 
@@ -54,9 +55,9 @@ router.get('/', async (req, res, next) => {
     let income = 0, expense = 0;
     const rows = r.rows.map(t => {
       const amount = Number(t.amount);
-      if (!t.transfer_group) { if (t.kind === 'income') income += amount; else expense += amount; }
+      if (!t.transfer_group && t.source !== 'debt') { if (t.kind === 'income') income += amount; else expense += amount; }
       const { date, time } = vnDateTime(t.occurred_at);
-      const category = t.transfer_group ? '' : t.source === 'adjust' ? 'Điều chỉnh số dư' : (t.category_name || 'Chưa phân loại');
+      const category = t.transfer_group ? '' : t.source === 'adjust' ? 'Điều chỉnh số dư' : t.source === 'debt' ? 'Sổ nợ' : (t.category_name || 'Chưa phân loại');
       return [
         date, time, kindLabel(t),
         t.kind === 'income' ? amount : -amount,

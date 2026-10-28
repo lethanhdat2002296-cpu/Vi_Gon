@@ -55,7 +55,7 @@ router.get('/suggest', async (req, res, next) => {
     const r = await db.query(
       `SELECT DISTINCT ON (LOWER(t.note)) t.note, t.kind, t.category_id, t.amount
        FROM transactions t
-       WHERE t.book_id = $1 AND t.deleted_at IS NULL AND t.transfer_group IS NULL AND t.source <> 'adjust'
+       WHERE t.book_id = $1 AND t.deleted_at IS NULL AND t.transfer_group IS NULL AND t.source NOT IN ('adjust', 'debt')
          AND t.note ILIKE $2
        ORDER BY LOWER(t.note), t.occurred_at DESC
        LIMIT 5`,

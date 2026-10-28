@@ -19,6 +19,8 @@ const planningRoutes = require('./routes/planning');
 const cronRoutes = require('./routes/cron');
 const bankRoutes = require('./routes/bank');
 const receiptRoutes = require('./routes/receipts');
+const bookRoutes = require('./routes/books');
+const { groups: groupRoutes, debts: debtRoutes } = require('./routes/sharing');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
@@ -33,7 +35,7 @@ app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src 'self' blob: https://cdn.jsdelivr.net; " +
     "connect-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
-    "img-src 'self' data: blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+    "img-src 'self' data: blob: https://img.vietqr.io; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
   if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
     res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
   }
@@ -71,6 +73,10 @@ app.use('/api/goals', planningRoutes.goals);
 app.use('/api/recurring', planningRoutes.rules);
 app.use('/api/hook', bankRoutes.hook);        // CÔNG KHAI: SePay gọi (kiểm mã bí mật mỗi lần)
 app.use('/api/bank', bankRoutes.router);
+app.use('/api/books', bookRoutes.router);    // sổ chung, thành viên, lời mời
+app.use('/api/invites', bookRoutes.invites);
+app.use('/api/groups', groupRoutes);          // chia tiền nhóm
+app.use('/api/debts', debtRoutes);            // sổ nợ
 app.use('/api/cron', cronRoutes);          // job định kỳ (bảo vệ bằng CRON_SECRET)
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)

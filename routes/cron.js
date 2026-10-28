@@ -2,12 +2,14 @@
 // FAIL-CLOSED: chưa đặt CRON_SECRET hoặc sai → 401, không chạy gì.
 //   1. Ghi giao dịch định kỳ đến hạn (không trùng khi chạy lại)
 //   2. Gửi email ngân sách chạm 80% / 100% (mỗi mốc 1 lần/tháng)
-//   3. Xoá hẳn giao dịch đã xoá quá 1 ngày (và ảnh hoá đơn của nó)
+//   3. Email nhắc nợ trước hạn 3 ngày và đúng hạn (mỗi mốc 1 lần)
+//   4. Xoá hẳn giao dịch đã xoá quá 1 ngày (và ảnh hoá đơn của nó)
 const crypto = require('crypto');
 const express = require('express');
 const db = require('../lib/db');
 const config = require('../config');
 const recurring = require('../services/recurring');
+const debts = require('../services/debts');
 const email = require('../utils/email');
 const { budgetsStatus } = require('./planning');
 const { currentMonth, nowInTimezone } = require('../utils/time');
@@ -55,15 +57,28 @@ async function budgetAlerts(month) {
   return sent;
 }
 
+// Nhắc nợ: ghi mốc vào debt_reminders trước rồi mới gửi → chạy lại không gửi lặp
+async function debtReminders(today) {
+  let sent = 0;
+  for (const d of await debts.dueReminders(today)) {
+    const ins = await db.query('INSERT INTO debt_reminders (debt_id, kind) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING debt_id', [d.id, d.kind]);
+    if (!ins.rows[0]) continue;
+    const r = await email.sendDebtReminder(d.email, d.full_name, d);
+    if (r.ok) sent++;
+  }
+  return sent;
+}
+
 router.get('/daily', async (req, res, next) => {
   try {
     const today = nowInTimezone().date;
     const rec = await recurring.processDueRules(today);
     const alerts = await budgetAlerts(currentMonth());
+    const debtEmails = await debtReminders(today);
     // Xoá hẳn giao dịch đã xoá quá 1 ngày (hết thời gian hoàn tác) kèm ảnh hoá đơn
     const purged = (await db.query("DELETE FROM transactions WHERE deleted_at < NOW() - INTERVAL '1 day'")).rowCount;
-    console.log('[cron daily]', today, JSON.stringify({ ...rec, alerts, purged }));
-    res.json({ ok: true, today, recurring: rec, budget_emails: alerts, purged });
+    console.log('[cron daily]', today, JSON.stringify({ ...rec, alerts, debtEmails, purged }));
+    res.json({ ok: true, today, recurring: rec, budget_emails: alerts, debt_emails: debtEmails, purged });
   } catch (e) { next(e); }
 });
 

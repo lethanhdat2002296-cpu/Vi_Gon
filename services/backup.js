@@ -11,7 +11,7 @@ const FORMAT = 'vi-gon-backup';
 const VERSION = 1;
 const MAX_TX = 50000;
 const WALLET_TYPES = ['cash', 'bank', 'ewallet', 'credit', 'savings'];
-const SOURCES = ['manual', 'adjust', 'transfer', 'bank', 'recurring', 'import'];
+const SOURCES = ['manual', 'adjust', 'transfer', 'bank', 'recurring', 'import', 'debt'];
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 // So khớp tên không phân biệt hoa thường và dấu (giống vn_fold trong SQL)
