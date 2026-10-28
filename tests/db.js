@@ -44,5 +44,5 @@ export async function startApp() {
     const r = await fetch(base + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
     return { status: r.status, body: await r.json().catch(() => ({})) };
   }
-  return { call, close: () => new Promise(r => server.close(r)) };
+  return { call, base, close: () => new Promise(r => server.close(r)) };
 }

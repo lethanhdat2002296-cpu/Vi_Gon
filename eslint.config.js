@@ -12,7 +12,7 @@ const browserGlobals = {
   window: 'readonly', document: 'readonly', navigator: 'readonly', localStorage: 'readonly', location: 'readonly',
   fetch: 'readonly', alert: 'readonly', confirm: 'readonly', prompt: 'readonly',
   FileReader: 'readonly', Image: 'readonly', Blob: 'readonly', URL: 'readonly', URLSearchParams: 'readonly',
-  FormData: 'readonly', Event: 'readonly', console: 'readonly', Intl: 'readonly',
+  FormData: 'readonly', Event: 'readonly', console: 'readonly', Intl: 'readonly', sessionStorage: 'readonly',
   setTimeout: 'readonly', setInterval: 'readonly', clearTimeout: 'readonly', clearInterval: 'readonly',
   VG: 'writable',
   // Thêm global CDN (Chart, XLSX, Tesseract…) khi bắt đầu dùng

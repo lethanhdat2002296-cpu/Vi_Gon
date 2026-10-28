@@ -12,6 +12,8 @@ const categoryRoutes = require('./routes/categories');
 const transactionRoutes = require('./routes/transactions');
 const quickaddRoutes = require('./routes/quickadd');
 const onboardingRoutes = require('./routes/onboarding');
+const { summary: summaryRoutes, reports: reportRoutes } = require('./routes/reports');
+const exportRoutes = require('./routes/export');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
@@ -51,6 +53,9 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/transfers', transactionRoutes.transfers);
 app.use('/api/quickadd', quickaddRoutes);
 app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/summary', summaryRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/export.xlsx', exportRoutes);
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)
 app.get('/api/health', async (req, res) => {

@@ -44,6 +44,8 @@
     var wallets = data.wallets;
     var catsById = {};
     data.categories.forEach(function (c) { catsById[c.id] = c; });
+    // Mục con chưa có biểu tượng riêng thì dùng biểu tượng của danh mục cha
+    data.categories.forEach(function (c) { if (!c.icon && c.parent_id && catsById[c.parent_id]) c.icon = catsById[c.parent_id].icon; });
 
     // Trạng thái bảng
     var s = {

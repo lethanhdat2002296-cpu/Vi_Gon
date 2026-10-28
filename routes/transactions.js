@@ -9,6 +9,7 @@ const { toId, cleanText } = require('../utils/params');
 const { parseVnd } = require('../utils/money');
 const { validateAmount } = require('../utils/validators');
 const { resolveOccurredAt } = require('../utils/time');
+const { buildFilter } = require('../services/filters');
 
 const router = express.Router();
 router.use(authRequired, bookRequired);
@@ -39,11 +40,13 @@ function publicTx(t) {
 }
 
 const SELECT_TX = `
-  SELECT t.*, w.name AS wallet_name, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
+  SELECT t.*, w.name AS wallet_name, c.name AS category_name,
+         COALESCE(NULLIF(c.icon, ''), pc.icon) AS category_icon, c.color AS category_color,
          o.wallet_id AS counterpart_wallet_id, ow.name AS counterpart_wallet_name
   FROM transactions t
   JOIN wallets w ON w.id = t.wallet_id
   LEFT JOIN categories c ON c.id = t.category_id
+  LEFT JOIN categories pc ON pc.id = c.parent_id
   LEFT JOIN transactions o ON t.transfer_group IS NOT NULL AND o.transfer_group = t.transfer_group AND o.id <> t.id
   LEFT JOIN wallets ow ON ow.id = o.wallet_id`;
 
@@ -73,29 +76,44 @@ async function overdraftWarning(wallet) {
   return bal !== null && bal < 0n ? `Ví "${wallet.name}" đang âm ${(-bal).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')} ₫` : null;
 }
 
-// ============ DANH SÁCH (mới nhất trước, phân trang theo con trỏ) ============
-// Bộ lọc đầy đủ của Sổ (F04) sẽ thêm ở Bước 4.
+// ============ DANH SÁCH (Sổ, F04) ============
+// Lọc: from, to (YYYY-MM-DD giờ VN), wallet, category (gồm mục con), kind (expense|income|transfer), source, q
+// Mới nhất trước, phân trang theo con trỏ 50 dòng. Trang đầu kèm tổng số dòng + tổng thu/chi của bộ lọc
+// (không tính chuyển tiền) để khớp với file Excel.
 router.get('/', async (req, res, next) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || PAGE, 1), PAGE);
-    const vals = [req.bookId];
-    let where = 't.book_id = $1 AND t.deleted_at IS NULL';
-    const walletId = toId(req.query.wallet);
-    if (walletId) { vals.push(walletId); where += ` AND t.wallet_id = $${vals.length}`; }
+    const f = buildFilter(req.bookId, req.query);
+    if (f.error) return res.status(400).json({ error: f.error });
+    const where = f.where.slice();
+    const vals = f.vals.slice();
     // Con trỏ "occurred_at|id" của dòng cuối trang trước
     if (req.query.cursor) {
       const [at, id] = String(req.query.cursor).split('|');
       if (isNaN(new Date(at)) || !toId(id)) return res.status(400).json({ error: 'cursor không hợp lệ' });
       vals.push(new Date(at), toId(id));
-      where += ` AND (t.occurred_at, t.id) < ($${vals.length - 1}, $${vals.length})`;
+      where.push(`(t.occurred_at, t.id) < ($${vals.length - 1}, $${vals.length})`);
     }
     vals.push(limit + 1);
-    const r = await db.query(`${SELECT_TX} WHERE ${where} ORDER BY t.occurred_at DESC, t.id DESC LIMIT $${vals.length}`, vals);
+    const r = await db.query(`${SELECT_TX} WHERE ${where.join(' AND ')} ORDER BY t.occurred_at DESC, t.id DESC LIMIT $${vals.length}`, vals);
     const rows = r.rows.slice(0, limit);
     const last = rows[rows.length - 1];
+    let summary;
+    if (!req.query.cursor) {
+      const s = await db.query(
+        `SELECT COUNT(*)::int AS count,
+                COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'income' AND t.transfer_group IS NULL), 0)::text AS income,
+                COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'expense' AND t.transfer_group IS NULL), 0)::text AS expense
+         FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
+         WHERE ${f.where.join(' AND ')}`,
+        f.vals
+      );
+      summary = { count: s.rows[0].count, income: Number(s.rows[0].income), expense: Number(s.rows[0].expense) };
+    }
     res.json({
       transactions: rows.map(publicTx),
-      next_cursor: r.rows.length > limit ? `${new Date(last.occurred_at).toISOString()}|${last.id}` : null
+      next_cursor: r.rows.length > limit ? `${new Date(last.occurred_at).toISOString()}|${last.id}` : null,
+      summary
     });
   } catch (e) { next(e); }
 });
@@ -261,3 +279,5 @@ transfers.post('/', canWrite, async (req, res, next) => {
 
 module.exports = router;
 module.exports.transfers = transfers;
+module.exports.SELECT_TX = SELECT_TX;
+module.exports.publicTx = publicTx;

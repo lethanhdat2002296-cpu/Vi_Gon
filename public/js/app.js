@@ -9,6 +9,7 @@
   var PRIVATE = [
     [/^\/$/, S.home],
     [/^\/ledger$/, S.ledger],
+    [/^\/reports$/, S.reports],
     [/^\/plan$/, S.plan],
     [/^\/me$/, S.me],
     [/^\/wallets$/, S.wallets],
