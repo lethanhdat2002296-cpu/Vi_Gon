@@ -340,7 +340,11 @@ async function rulesOverview(bookId) {
 }
 
 rules.get('/', async (req, res, next) => {
-  try { res.json(await rulesOverview(req.bookId)); } catch (e) { next(e); }
+  try {
+    // Dự phòng khi cron chưa chạy: ghi các lần đến hạn của sổ này trước khi trả danh sách
+    await recurring.processDueRules(todayVN(), { bookId: req.bookId });
+    res.json(await rulesOverview(req.bookId));
+  } catch (e) { next(e); }
 });
 
 async function readRule(req, b, current) {

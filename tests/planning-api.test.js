@@ -198,6 +198,21 @@ describe.skipIf(!TEST_DB)('Kế hoạch F09–F11 (Postgres thật)', () => {
     });
   });
 
+  describe('dự phòng khi cron không chạy', () => {
+    it('mở Tổng quan là ghi các lần định kỳ đã đến hạn của chính sổ đó (không đụng sổ khác)', async () => {
+      const a = await setup();
+      const b = await setup();
+      const ra = (await call('POST', '/api/recurring', { kind: 'expense', amount: 1000, wallet_id: a.cash.id, frequency: 'monthly', start_date: addDays(today, 1) }, a.t)).body.rule;
+      const rb = (await call('POST', '/api/recurring', { kind: 'expense', amount: 2000, wallet_id: b.cash.id, frequency: 'monthly', start_date: addDays(today, 1) }, b.t)).body.rule;
+      await sql('UPDATE recurring_rules SET next_date = $1 WHERE id = ANY($2::bigint[])', [today, [ra.id, rb.id]]);
+      await call('GET', '/api/summary', null, a.t);
+      expect((await call('GET', '/api/transactions?source=recurring', null, a.t)).body.summary.count).toBe(1);
+      expect((await sql('SELECT next_date::text AS d FROM recurring_rules WHERE id = $1', [rb.id])).rows[0].d).toBe(today);
+      await call('GET', '/api/summary', null, a.t);
+      expect((await call('GET', '/api/transactions?source=recurring', null, a.t)).body.summary.count).toBe(1);
+    });
+  });
+
   describe('cron và quyền', () => {
     it('cron từ chối khi thiếu/sai CRON_SECRET, và khi chưa cấu hình CRON_SECRET', async () => {
       expect((await cron(null)).status).toBe(401);
