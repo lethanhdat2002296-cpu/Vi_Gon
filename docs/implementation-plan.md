@@ -121,10 +121,10 @@ Giao diện: bảng nhập nhanh (bàn phím số, phím `000`, nút 20k/50k/100
 ## Bước 4 · M3 Tổng quan, Sổ, Báo cáo (F02, F04, F07)
 
 API
-- [ ] `GET /api/summary?month=YYYY-MM` → tổng số dư, thu, chi, 5 giao dịch gần nhất, cảnh báo
-- [ ] `GET /api/transactions?from&to&wallet&category&kind&source&q&cursor` (phân trang theo con trỏ, 50 dòng)
-- [ ] `GET /api/reports/by-category?from&to&wallet` · `GET /api/reports/monthly?months=6`
-- [ ] `GET /api/export.xlsx?…` (cùng bộ lọc với Sổ)
+- [x] `GET /api/summary?month=YYYY-MM` → tổng số dư, thu, chi, 5 giao dịch gần nhất, cảnh báo
+- [x] `GET /api/transactions?from&to&wallet&category&kind&source&q&cursor` (phân trang theo con trỏ, 50 dòng)
+- [x] `GET /api/reports/by-category?from&to&wallet` · `GET /api/reports/monthly?months=6`
+- [x] `GET /api/export.xlsx?…` (cùng bộ lọc với Sổ)
 
 Lưu ý
 - Tìm kiếm không dấu: thêm cột `note_search` (chữ thường, bỏ dấu) hoặc dùng `unaccent`.

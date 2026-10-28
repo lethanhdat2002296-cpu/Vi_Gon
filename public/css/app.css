@@ -301,3 +301,15 @@ button.icon-btn { border: 0; cursor: pointer; font-family: inherit; }
 .rtable td { padding: 8px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .rtable tr:last-child td { border-bottom: 0; }
 .rtable .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ============ Bổ sung Bước 5 ============ */
+.screen.lock { justify-content: space-between; }
+.pin-dots { display: flex; gap: 14px; justify-content: center; padding: 18px 0 6px; min-height: 44px; }
+.pin-dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); }
+.pin-dots i.on { background: var(--accent); }
+.pin-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 320px; width: 100%; margin: 0 auto; }
+.pin-keys .key { padding: 16px 0; font-size: 24px; }
+.pin-keys .ok-key { background: var(--accent); color: var(--accent-ink); font-size: 18px; }
+.btn.danger-btn { background: var(--expense); color: #fff; }
+.err-list { margin: 8px 0 0; padding-left: 18px; color: var(--expense); display: flex; flex-direction: column; gap: 2px; }
+.card details { border-top: 1px solid var(--line); padding-top: 10px; }

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createRequire } from 'module';
 import { TEST_DB, setupDb, resetData, teardownDb, sql, startApp } from './db.js';
-import { readSheet } from './xlsx-read.js';
 const require = createRequire(import.meta.url);
 const email = require('../utils/email.js');
 const time = require('../utils/time.js');
+const { readSheet } = require('../utils/xlsx-read.js');
 
 describe.skipIf(!TEST_DB)('Tổng quan, Sổ, Báo cáo, Excel (Postgres thật)', () => {
   let app, call;

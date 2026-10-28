@@ -14,6 +14,7 @@ const quickaddRoutes = require('./routes/quickadd');
 const onboardingRoutes = require('./routes/onboarding');
 const { summary: summaryRoutes, reports: reportRoutes } = require('./routes/reports');
 const exportRoutes = require('./routes/export');
+const dataRoutes = require('./routes/data');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
@@ -40,6 +41,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : false;
 app.use(cors({ origin: allowedOrigins }));
 
+// Nhập dữ liệu (JSON sao lưu, file Excel base64) cần body lớn hơn; Vercel giới hạn ~4,5 MB
+app.use('/api/data', express.json({ limit: '4mb' }));
 app.use(express.json({ limit: '1mb' }));
 
 // Khi chạy local thì serve static từ public/ (trên Vercel do CDN serve)
@@ -56,6 +59,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/summary', summaryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/export.xlsx', exportRoutes);
+app.use('/api/data', dataRoutes);
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)
 app.get('/api/health', async (req, res) => {

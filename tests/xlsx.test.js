@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import xlsx from '../utils/xlsx.js';
-import { unzip, readSheet } from './xlsx-read.js';
+import zlib from 'zlib';
+import reader from '../utils/xlsx-read.js';
+const { unzip, readSheet } = reader;
 const { buildXlsx, crc32, colName, xmlText } = xlsx;
 
 describe('xlsx', () => {
@@ -24,7 +26,7 @@ describe('xlsx', () => {
     expect(Object.keys(files).sort()).toEqual([
       '[Content_Types].xml', '_rels/.rels', 'xl/_rels/workbook.xml.rels', 'xl/styles.xml', 'xl/workbook.xml', 'xl/worksheets/sheet1.xml'
     ]);
-    for (const f of Object.values(files)) expect(crc32(f.data)).toBe(f.crc);
+    for (const data of Object.values(files)) expect(crc32(data)).toBe(zlib.crc32(data));
     expect(readSheet(buf)).toEqual([
       { _r: 1, A: 'Ghi chú', B: 'Số tiền' },
       { _r: 2, A: 'Cà phê <sữa>', B: -45000 },
