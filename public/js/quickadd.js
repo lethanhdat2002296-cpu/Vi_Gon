@@ -1,7 +1,7 @@
 // Bảng nhập nhanh (F03): gõ số tiền → chọn danh mục → Lưu. Dùng cho cả thêm mới và sửa.
 //   VG.quickAdd()                 thêm chi (mặc định)
-//   VG.quickAdd({ mode: 'transfer' })
-//   VG.quickAdd({ tx: giaoDich }) sửa / xoá
+//   VG.quickAdd({ mode: 'income', scan: true })  chọn sẵn loại / mở camera quét hoá đơn
+//   VG.quickAdd({ tx: giaoDich }) sửa / xoá (khoản chuyển giữa ví cũ vẫn sửa được)
 (function (VG) {
   'use strict';
   var h = VG.h;
@@ -82,7 +82,7 @@
     // ---- Phần đầu: loại + nút xoá khi sửa ----
     var segEl = isTransferEdit
       ? h('div', { class: 'seg' }, h('button', { type: 'button', 'aria-selected': 'true' }, 'Chuyển giữa ví'))
-      : VG.seg(editing ? [['expense', 'Chi'], ['income', 'Thu']] : [['expense', 'Chi'], ['income', 'Thu'], ['transfer', 'Chuyển']], s.mode, function (m) {
+      : VG.seg([['expense', 'Chi'], ['income', 'Thu']], s.mode, function (m) {
         if (m !== s.mode) { s.mode = m; if (!editing || m !== tx.kind) s.categoryId = null; else s.categoryId = tx.category_id; drawBody(); drawAmount(); }
       });
     var head = h('div', { class: 'qa-head' }, h('div', { class: 'grow' }, segEl),

@@ -183,7 +183,7 @@
       u.theme = t; VG.applyTheme(u);
       VG.api('PATCH', '/me', { theme: t }).catch(function (e) { u.theme = old; VG.applyTheme(u); VG.toast(e.message, { kind: 'err' }); VG.route(); });
     }));
-    var hide = VG.toggle('Ẩn số tiền', u.hide_amounts, 'Che số dư và số tiền khi đang ở chỗ đông người');
+    var hide = VG.toggle('Ẩn số tiền', u.hide_amounts, 'Che số dư ví khi đang ở chỗ đông người (thu, chi vẫn hiện)');
     hide.input.addEventListener('change', function () {
       var v = hide.input.checked;
       VG.api('PATCH', '/me', { hide_amounts: v }).then(function (d) { setUser(d.user); })

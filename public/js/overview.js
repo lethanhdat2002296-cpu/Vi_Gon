@@ -107,6 +107,67 @@
 
   // ============ TỔNG QUAN ============
   var homeMonth = null;
+  // Bảng điều khiển ở Tổng quan: chỉ số nhanh, chi theo danh mục, thu chi 6 tháng
+  function drawDashboard(box, d) {
+    var month = d.month;
+    var last = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5)), 0)).getUTCDate();
+    // Tháng đang chạy: tính đến hôm nay, để "so kỳ trước" so cùng số ngày
+    var from = month + '-01', to = d.is_current ? VG.today() : month + '-' + String(last).padStart(2, '0');
+    var daysGone = d.is_current ? Number(VG.today().slice(8)) : last;
+    // Chỉ số nhanh
+    var vsPrev = h('b', null, '…');
+    var saveRate = d.income ? Math.round((d.income - d.expense) / d.income * 100) : null;
+    box.appendChild(h('div', { class: 'sec-head' }, h('b', null, 'Bảng điều khiển'), h('a', { href: '#/reports?month=' + month, class: 'small' }, 'Báo cáo đầy đủ ›')));
+    box.appendChild(h('div', { class: 'kpis' },
+      h('div', { class: 'kpi' }, h('span', { class: 'lbl' }, 'Chi trung bình/ngày'), h('b', null, VG.show(Math.round(d.expense / Math.max(1, daysGone)), { symbol: false }))),
+      h('div', { class: 'kpi' }, h('span', { class: 'lbl' }, 'Tỉ lệ để dành'),
+        h('b', { class: saveRate === null ? '' : saveRate >= 0 ? 'in' : 'out' }, saveRate === null ? '—' : saveRate + '%')),
+      h('div', { class: 'kpi' }, h('span', { class: 'lbl' }, d.is_current ? 'Chi so với ' + daysGone + ' ngày trước đó' : 'Chi so với tháng trước'), vsPrev)));
+    var catCard = h('div', { class: 'card' }, h('b', null, 'Chi theo danh mục'), VG.loading());
+    var tipBox = h('p', { class: 'small tip' }, 'Bấm vào một tháng để xem số.');
+    var barCard = h('div', { class: 'card' },
+      h('div', { class: 'row-between' }, h('b', null, 'Thu, chi 6 tháng'),
+        h('span', { class: 'legend-inline' }, h('i', { class: 'bar-in-dot' }), 'Thu', h('i', { class: 'bar-out-dot' }), 'Chi')), VG.loading());
+    box.appendChild(catCard);
+    box.appendChild(barCard);
+    Promise.all([VG.api('GET', '/reports/by-category?from=' + from + '&to=' + to), VG.api('GET', '/reports/monthly?months=6&end=' + month)]).then(function (r) {
+      var C = VG.charts, cat = r[0];
+      // So với kỳ liền trước cùng độ dài (API by-category trả prev_total)
+      if (cat.prev_total) {
+        var ch = Math.round((cat.total - cat.prev_total) / cat.prev_total * 100);
+        vsPrev.textContent = (ch > 0 ? '▲ +' : ch < 0 ? '▼ ' : '') + ch + '%';
+        vsPrev.className = ch > 0 ? 'out' : ch < 0 ? 'in' : '';
+      } else vsPrev.textContent = '—';
+      catCard.lastChild.remove();
+      if (!cat.total) {
+        catCard.appendChild(h('p', { class: 'muted small' }, 'Chưa có khoản chi nào trong tháng này.'));
+      } else {
+        var openLedger = function (s) {
+          if (s.other) return;
+          VG.setLedgerFilter({ period: 'custom', from: from, to: to, category: s.id ? String(s.id) : 'none', kind: 'expense' });
+          VG.go('/ledger');
+        };
+        var slices = C.slicesOf(cat);
+        var legend = h('ul', { class: 'legend' }, slices.map(function (s) {
+          var dot = h('i', { 'aria-hidden': 'true' });
+          dot.style.background = s.color;
+          var fill = h('i');
+          fill.style.width = Math.max(2, Math.round(s.share * 100)) + '%';
+          fill.style.background = s.color;
+          return h('li', null, h('button', { type: 'button', class: 'legend-row', disabled: !!s.other, onclick: function () { openLedger(s); } },
+            h('span', { class: 'legend-top' }, dot, h('span', { class: 'grow' }, s.name), h('span', { class: 'lbl' }, C.pct(s.share)), h('b', { class: 'amt' }, VG.show(s.amount, { symbol: false }))),
+            h('span', { class: 'share-bar', 'aria-hidden': 'true' }, fill)));
+        }));
+        catCard.appendChild(h('div', { class: 'donut-row' }, C.donut(cat, slices, openLedger), legend));
+      }
+      barCard.lastChild.remove();
+      barCard.appendChild(C.bars(r[1].months, function (m) {
+        tipBox.textContent = VG.monthLabel(m.month) + (m.partial ? ' (tính đến hôm nay)' : '') + ': thu ' + VG.show(m.income) + ' · chi ' + VG.show(m.expense);
+      }));
+      barCard.appendChild(tipBox);
+    }).catch(function (e) { catCard.appendChild(h('p', { class: 'msg err' }, e.message)); });
+  }
+
   VG.screens.home = function () {
     var u = VG.state.user;
     var c = VG.shell('/');
@@ -141,13 +202,13 @@
       var week = (d.last7 || []).reduce(function (s, x) { return s + x.expense; }, 0);
       body.appendChild(h('a', { href: '#/wallets', class: 'plain' }, h('div', { class: 'card hero' },
         h('span', { class: 'lbl' }, 'Tổng số dư · ' + d.wallet_count + ' ví'),
-        h('span', { class: 'big' }, VG.show(d.total_balance)),
+        h('span', { class: 'big' }, VG.bal(d.total_balance)),
         spark,
         h('div', { class: 'spark-lbl' }, h('span', null, 'Chi 7 ngày: ' + VG.show(week, { symbol: false })), h('span', null, 'Xem từng ví ›')))));
 
       // Nút nhanh
       if (VG.canWrite()) {
-        var QI = { out: ['M12 5v14', 'M6 13l6 6 6-6'], in: ['M12 19V5', 'M6 11l6-6 6 6'], swap: ['M4 8h13l-3-3', 'M20 16H7l3 3'],
+        var QI = { out: ['M12 5v14', 'M6 13l6 6 6-6'], in: ['M12 19V5', 'M6 11l6-6 6 6'], plan: ['M12 3.5a8.5 8.5 0 1 0 8.5 8.5', 'M12 7.5a4.5 4.5 0 1 0 4.5 4.5', 'M12 12l7-7', 'M16 5h3v3'],
           scan: ['M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8', 'M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8', 'M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16', 'M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16', 'M4 12h16'] };
         var qicon = function (k) {
           var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -156,11 +217,11 @@
           return s;
         };
         var qb = function (k, cls, label, opts) {
-          return h('button', { type: 'button', onclick: function () { VG.quickAdd(opts); } }, h('span', { class: 'q ' + cls }, qicon(k)), label);
+          return h('button', { type: 'button', onclick: function () { if (opts.go) VG.go(opts.go); else VG.quickAdd(opts); } }, h('span', { class: 'q ' + cls }, qicon(k)), label);
         };
         body.appendChild(h('div', { class: 'quick' },
           qb('out', 'exp', 'Chi', { mode: 'expense' }), qb('in', 'inc', 'Thu', { mode: 'income' }),
-          qb('swap', 'acc', 'Chuyển', { mode: 'transfer' }), qb('scan', 'wrn', 'Quét', { mode: 'expense', scan: true })));
+          qb('scan', 'wrn', 'Quét', { mode: 'expense', scan: true }), qb('plan', 'acc', 'Ngân sách', { go: '/plan?tab=budgets' })));
       }
 
       // Thu, chi, còn lại của tháng; ‹ › hoặc vuốt ngang để đổi tháng
@@ -193,6 +254,11 @@
         var cls = a.kind === 'budget_over' ? 'msg err plain-link' : (a.kind === 'recurring_pending' || a.kind === 'bank_pending') ? 'msg info plain-link' : 'msg warn plain-link';
         body.appendChild(h('a', { href: href, class: cls }, h('span', null, (a.kind === 'recurring_pending' || a.kind === 'bank_pending' ? '🔔 ' : '⚠️ ') + a.text), h('span', { 'aria-hidden': 'true' }, '›')));
       });
+      // ===== Bảng điều khiển: biểu đồ ngay ở Tổng quan =====
+      var dash = h('div', { class: 'stack' });
+      body.appendChild(dash);
+      drawDashboard(dash, d);
+
       // Định kỳ sắp tới trong 7 ngày
       if (d.upcoming && d.upcoming.length) {
         body.appendChild(h('a', { href: '#/plan?tab=recurring', class: 'card plain upcoming' },
@@ -257,7 +323,7 @@
   }
 
   var SOURCES = [['', 'Mọi nguồn'], ['manual', 'Ghi tay'], ['transfer', 'Chuyển tiền'], ['adjust', 'Điều chỉnh'], ['bank', 'Tự động'], ['recurring', 'Định kỳ'], ['import', 'Nhập file']];
-  var KINDS = [['', 'Tất cả'], ['expense', 'Chi'], ['income', 'Thu'], ['transfer', 'Chuyển']];
+  var KINDS = [['', 'Tất cả'], ['expense', 'Chi'], ['income', 'Thu']];
   var PERIODS = [['all', 'Mọi lúc'], ['month', 'Tháng này'], ['last', 'Tháng trước'], ['custom', 'Tự chọn']];
 
   function openFilterSheet(f, refs, onApply) {
@@ -333,7 +399,7 @@
     var filterBtn = h('button', { type: 'button', class: 'filter-btn' + (n ? ' on' : ''), 'aria-label': 'Bộ lọc' }, VG.icon('filter'), n ? h('b', null, String(n)) : null);
     c.appendChild(h('div', { class: 'search-row' }, h('label', { class: 'search-box' }, VG.icon('search'), search), filterBtn));
     // Lọc nhanh theo loại
-    c.appendChild(h('div', { class: 'chips kind-chips' }, [['', 'Tất cả'], ['expense', 'Chi'], ['income', 'Thu'], ['transfer', 'Chuyển']].map(function (k) {
+    c.appendChild(h('div', { class: 'chips kind-chips' }, [['', 'Tất cả'], ['expense', 'Chi'], ['income', 'Thu']].map(function (k) {
       return h('button', { type: 'button', class: 'chip', 'aria-pressed': String((f.kind || '') === k[0]), onclick: function () {
         f.kind = k[0]; saveFilter(f); VG.rerender();
       } }, k[1]);
