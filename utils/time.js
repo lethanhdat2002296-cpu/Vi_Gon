@@ -70,4 +70,28 @@ function addMonths(month, n) {
   return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
 }
 
-module.exports = { nowInTimezone, addDays, daysBetween, toLocalDateHour, currentMonth, monthRange, addMonths };
+// Thời điểm giao dịch từ dữ liệu client. Trả { at: Date } hoặc { error }.
+//   occurred_at (ISO đầy đủ) → dùng nguyên; date 'YYYY-MM-DD' (giờ VN) → hôm nay = lúc này,
+//   ngày cũ = 12:00 ngày đó; không gửi gì → lúc này. Không cho ngày tương lai (F03).
+// Việt Nam không có giờ mùa hè nên độ lệch cố định +07:00.
+const VN_OFFSET = '+07:00';
+const FUTURE_SKEW_MS = 5 * 60 * 1000;
+function resolveOccurredAt({ date, occurred_at } = {}, now = new Date()) {
+  if (occurred_at !== undefined && occurred_at !== null && occurred_at !== '') {
+    const d = new Date(occurred_at);
+    if (typeof occurred_at !== 'string' || isNaN(d)) return { error: 'Thời điểm không hợp lệ' };
+    if (d.getTime() > now.getTime() + FUTURE_SKEW_MS) return { error: 'Không ghi được giao dịch ở tương lai' };
+    return { at: d };
+  }
+  if (date !== undefined && date !== null && date !== '') {
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'Ngày không hợp lệ (YYYY-MM-DD)' };
+    const noon = new Date(`${date}T12:00:00${VN_OFFSET}`);
+    if (isNaN(noon) || noon.toISOString().slice(0, 10) !== date) return { error: 'Ngày không hợp lệ' };
+    const today = nowInTimezone(now).date;
+    if (date > today) return { error: 'Không ghi được giao dịch ở tương lai' };
+    return { at: date === today ? now : noon };
+  }
+  return { at: now };
+}
+
+module.exports = { nowInTimezone, addDays, daysBetween, toLocalDateHour, currentMonth, monthRange, addMonths, resolveOccurredAt };

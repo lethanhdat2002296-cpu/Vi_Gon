@@ -8,7 +8,7 @@ Stack: Node.js + Express + Neon Postgres, deploy trên Vercel.
 - Kế hoạch triển khai từng bước: [docs/implementation-plan.md](docs/implementation-plan.md)
 - Màn hình mô phỏng: [docs/ui-mockups.html](docs/ui-mockups.html) (tải về mở bằng trình duyệt) hoặc https://claude.ai/artifact/9juSSsiEHbunMYz86zVN6g
 
-Trạng thái: Bước 1 xong (đang chạy ở https://walletapps-zeta.vercel.app). Đang làm Bước 2 (tài khoản).
+Trạng thái: Bước 1–2 xong (đang chạy ở https://walletapps-zeta.vercel.app). Đang làm Bước 3 (ví, danh mục, giao dịch).
 
 ## Chạy local
 

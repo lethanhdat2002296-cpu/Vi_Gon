@@ -66,3 +66,26 @@ describe('monthRange / addMonths', () => {
     expect(addMonths('2026-06', -6)).toBe('2025-12');
   });
 });
+
+describe('resolveOccurredAt', () => {
+  const { resolveOccurredAt } = time;
+  const now = new Date('2026-06-30T17:30:00Z'); // 00:30 ngày 01/07 giờ VN
+  it('không gửi gì → lúc này', () => {
+    expect(resolveOccurredAt({}, now).at).toEqual(now);
+  });
+  it('hôm nay (giờ VN) → lúc này', () => {
+    expect(resolveOccurredAt({ date: '2026-07-01' }, now).at).toEqual(now);
+  });
+  it('ngày cũ → 12:00 giờ VN ngày đó', () => {
+    expect(resolveOccurredAt({ date: '2026-06-15' }, now).at.toISOString()).toBe('2026-06-15T05:00:00.000Z');
+  });
+  it('ngày mai → lỗi (không ghi tương lai)', () => {
+    expect(resolveOccurredAt({ date: '2026-07-02' }, now).error).toBeTruthy();
+    expect(resolveOccurredAt({ occurred_at: '2026-07-01T00:00:00Z' }, now).error).toBeTruthy();
+  });
+  it('ngày sai → lỗi', () => {
+    expect(resolveOccurredAt({ date: '2026-02-30' }, now).error).toBeTruthy();
+    expect(resolveOccurredAt({ date: '30/06/2026' }, now).error).toBeTruthy();
+    expect(resolveOccurredAt({ occurred_at: 'hôm qua' }, now).error).toBeTruthy();
+  });
+});

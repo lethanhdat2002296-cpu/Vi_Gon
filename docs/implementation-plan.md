@@ -71,9 +71,9 @@ Mục tiêu: repo chạy được `npm run dev`, `npm test`, `npm run lint`; dep
 ## Bước 2 · M1 Tài khoản (F01 + phần đầu F08)
 
 API
-- [ ] `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout`
-- [ ] `POST /api/auth/verify-email` (token 24h) · `POST /api/auth/forgot` · `POST /api/auth/reset` (token 1h, dùng 1 lần)
-- [ ] `GET/PATCH /api/me` · `POST /api/me/password` (tăng `token_version`)
+- [x] `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout`
+- [x] `POST /api/auth/verify-email` (token 24h) · `POST /api/auth/forgot` · `POST /api/auth/reset` (token 1h, dùng 1 lần)
+- [x] `GET/PATCH /api/me` · `POST /api/me/password` (tăng `token_version`)
 
 Dữ liệu (`002_users.sql`): `users(id, email UNIQUE, password_hash, name, email_verified_at, token_version, pin_hash, created_at, deleted_at)`, `email_tokens(token_hash, user_id, kind, expires_at, used_at)`.
 
@@ -173,7 +173,7 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ## Bước 8 · M7 Dùng chung (F14, F15, F16)
 
-- [ ] `006_sharing.sql`: `books`, `book_members`, `invites`, `groups`, `group_members`, `group_expenses`, `debts`, `debt_payments`.
+- [ ] `006_sharing.sql`: `invites`, (`books`, `book_members` đã có từ `003_core.sql`), `groups`, `group_members`, `group_expenses`, `debts`, `debt_payments`.
 - [ ] Sổ chung: mời, phân quyền, đổi sổ.
 - [ ] Chia tiền nhóm: thuật toán tất toán ít lần chuyển nhất (có test), VietQR (tham khảo `public/js/qr.js` của `Server`).
 - [ ] Sổ nợ + email nhắc hạn trong cron hằng ngày.

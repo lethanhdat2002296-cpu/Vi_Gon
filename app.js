@@ -7,6 +7,11 @@ const config = require('./config');
 
 const authRoutes = require('./routes/auth');
 const meRoutes = require('./routes/me');
+const walletRoutes = require('./routes/wallets');
+const categoryRoutes = require('./routes/categories');
+const transactionRoutes = require('./routes/transactions');
+const quickaddRoutes = require('./routes/quickadd');
+const onboardingRoutes = require('./routes/onboarding');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
@@ -40,6 +45,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/auth', authRoutes);  // đăng ký, đăng nhập, email, mật khẩu
 app.use('/api/me', meRoutes);      // hồ sơ + cài đặt người đang đăng nhập
+app.use('/api/wallets', walletRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/transfers', transactionRoutes.transfers);
+app.use('/api/quickadd', quickaddRoutes);
+app.use('/api/onboarding', onboardingRoutes);
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)
 app.get('/api/health', async (req, res) => {
