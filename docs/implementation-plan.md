@@ -161,11 +161,11 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ## Bước 7 · M6 Tự động hoá (F12, F13)
 
-- [ ] Chốt SePay hay Casso (so giá, ngân hàng hỗ trợ, định dạng webhook). → Chọn **SePay** (tài liệu webhook rõ, có `id` chống trùng, xác thực `Authorization: Apikey`).
-- [ ] `006_bank.sql` (005 đã dùng cho kế hoạch): `bank_links`, `category_rules`, cột `status` (pending/confirmed) cho giao dịch tự động.
-- [ ] `POST /api/hook/:linkId`: kiểm mã bí mật, chống trùng bằng `external_ref`, gợi ý danh mục, đưa vào "Chờ xác nhận".
-- [ ] Luật từ khoá mặc định + học từ lần người dùng sửa.
-- [ ] Quét hoá đơn: Tesseract chạy trên trình duyệt (tham khảo `public/js/payment.js`, `utils/receipt.js` của repo `Server`).
+- [x] Chốt SePay hay Casso (so giá, ngân hàng hỗ trợ, định dạng webhook). → Chọn **SePay** (tài liệu webhook rõ, có `id` chống trùng, xác thực `Authorization: Apikey`).
+- [x] `006_bank.sql` (005 đã dùng cho kế hoạch): `bank_links`, `category_rules`, cột `status` (pending/confirmed) cho giao dịch tự động.
+- [x] `POST /api/hook/:linkId`: kiểm mã bí mật, chống trùng bằng `external_ref`, gợi ý danh mục, đưa vào "Chờ xác nhận".
+- [x] Luật từ khoá mặc định + học từ lần người dùng sửa.
+- [x] Quét hoá đơn: Tesseract chạy trên trình duyệt (tham khảo `public/js/payment.js`, `utils/receipt.js` của repo `Server`).
 
 **Xong khi:** đủ nghiệm thu F12, F13.
 
@@ -173,10 +173,10 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ## Bước 8 · M7 Dùng chung (F14, F15, F16)
 
-- [ ] `007_sharing.sql`: `invites`, (`books`, `book_members` đã có từ `003_core.sql`), `groups`, `group_members`, `group_expenses`, `debts`, `debt_payments`.
-- [ ] Sổ chung: mời, phân quyền, đổi sổ.
-- [ ] Chia tiền nhóm: thuật toán tất toán ít lần chuyển nhất (có test), VietQR (tham khảo `public/js/qr.js` của `Server`).
-- [ ] Sổ nợ + email nhắc hạn trong cron hằng ngày.
+- [x] `007_sharing.sql`: `invites`, (`books`, `book_members` đã có từ `003_core.sql`), `groups`, `group_members`, `group_expenses` (+ `group_expense_shares`, `group_settlements`), `debts`, `debt_payments` (+ `debt_reminders`). Giao dịch ví của sổ nợ có nguồn `debt`, không tính vào thu/chi.
+- [x] Sổ chung: mời, phân quyền, đổi sổ (header `X-Book-Id`, kiểm thành viên mỗi request). Sổ chung có ví riêng (ví chung của nhà).
+- [x] Chia tiền nhóm: thuật toán tất toán ít lần chuyển nhất (có test), VietQR (tham khảo `public/js/qr.js` của `Server`).
+- [x] Sổ nợ + email nhắc hạn trong cron hằng ngày.
 
 **Xong khi:** đủ nghiệm thu F14–F16.
 

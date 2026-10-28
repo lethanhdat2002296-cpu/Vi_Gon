@@ -5,7 +5,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const db = require('../lib/db');
-const config = require('../config');
+const { baseUrl } = require('../utils/url');
 const bank = require('../services/bank');
 const { authRequired } = require('../middleware/auth');
 const { bookRequired, canWrite } = require('../middleware/book');
@@ -93,12 +93,6 @@ const router = express.Router();
 router.use(authRequired, bookRequired);
 
 // Địa chỉ gốc: APP_URL nếu đã đặt, không thì lấy theo tên miền đang truy cập (Vercel đặt x-forwarded-*)
-function baseUrl(req) {
-  if (process.env.APP_URL) return config.APP_URL;
-  const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'localhost').split(',')[0].trim();
-  return `${proto}://${host}`;
-}
 function publicLink(l, req) {
   return {
     id: Number(l.id), provider: l.provider, hook_url: `${baseUrl(req)}/api/hook/${l.hook_id}`, wallet_id: Number(l.wallet_id), wallet_name: l.wallet_name,

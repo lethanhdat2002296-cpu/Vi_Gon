@@ -43,6 +43,6 @@ describe('buildFilter', () => {
   it('báo cáo bỏ chuyển tiền và điều chỉnh', () => {
     const f = buildFilter(1, {}, { forReport: true });
     expect(f.where).toContain('t.transfer_group IS NULL');
-    expect(f.where).toContain("t.source <> 'adjust'");
+    expect(f.where).toContain("t.source NOT IN ('adjust', 'debt')");
   });
 });

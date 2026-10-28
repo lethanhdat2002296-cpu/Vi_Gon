@@ -24,14 +24,20 @@ function sniff(buf) {
 async function ownTx(req) {
   const id = toId(req.params.id);
   if (!id) return null;
-  const r = await db.query('SELECT id FROM transactions WHERE id = $1 AND book_id = $2', [id, req.bookId]);
-  return r.rows[0] ? id : null;
+  const r = await db.query('SELECT id, user_id FROM transactions WHERE id = $1 AND book_id = $2', [id, req.bookId]);
+  return r.rows[0] ? { id, user_id: r.rows[0].user_id } : null;
+}
+// Sổ chung: chỉ người ghi hoặc chủ sổ đổi ảnh
+function mayChange(req, t) {
+  return req.bookRole === 'owner' || Number(t.user_id) === req.user.id;
 }
 
 router.put('/', canWrite, async (req, res, next) => {
   try {
-    const id = await ownTx(req);
-    if (!id) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    const t = await ownTx(req);
+    if (!t) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    if (!mayChange(req, t)) return res.status(403).json({ error: 'Chỉ người ghi hoặc chủ sổ được đổi ảnh' });
+    const id = t.id;
     const b64 = (req.body || {}).data;
     if (typeof b64 !== 'string' || !/^[A-Za-z0-9+/=]+$/.test(b64)) return res.status(400).json({ error: 'Ảnh không hợp lệ' });
     const buf = Buffer.from(b64, 'base64');
@@ -49,8 +55,9 @@ router.put('/', canWrite, async (req, res, next) => {
 
 router.get('/', async (req, res, next) => {
   try {
-    const id = await ownTx(req);
-    if (!id) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    const t = await ownTx(req);
+    if (!t) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    const id = t.id;
     const r = await db.query('SELECT mime, data FROM transaction_receipts WHERE transaction_id = $1', [id]);
     if (!r.rows[0]) return res.status(404).json({ error: 'Giao dịch chưa có ảnh' });
     res.setHeader('Content-Type', r.rows[0].mime);
@@ -61,8 +68,10 @@ router.get('/', async (req, res, next) => {
 
 router.delete('/', canWrite, async (req, res, next) => {
   try {
-    const id = await ownTx(req);
-    if (!id) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    const t = await ownTx(req);
+    if (!t) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    if (!mayChange(req, t)) return res.status(403).json({ error: 'Chỉ người ghi hoặc chủ sổ được xoá ảnh' });
+    const id = t.id;
     await db.query('DELETE FROM transaction_receipts WHERE transaction_id = $1', [id]);
     res.json({ ok: true });
   } catch (e) { next(e); }

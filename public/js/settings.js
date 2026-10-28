@@ -88,7 +88,7 @@
   // ============ TẢI FILE KÈM ĐĂNG NHẬP ============
   VG.download = function (path, btn, doneText) {
     if (btn) btn.disabled = true;
-    return fetch('/api' + path, { headers: { Authorization: 'Bearer ' + VG.getToken() } }).then(function (r) {
+    return fetch('/api' + path, { headers: VG.authHeaders() }).then(function (r) {
       if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Không tải được file'); });
       var name = (r.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/);
       return r.blob().then(function (b) {

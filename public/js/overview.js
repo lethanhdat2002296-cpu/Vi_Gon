@@ -9,13 +9,20 @@
       return t.kind === 'expense' ? 'Chuyển đến ' + (t.counterpart_wallet_name || 'ví khác') : 'Nhận từ ' + (t.counterpart_wallet_name || 'ví khác');
     }
     if (t.source === 'adjust') return 'Điều chỉnh số dư';
+    if (t.source === 'debt') return t.note || 'Sổ nợ';
     return t.category_name || 'Chưa phân loại';
   }
   function txRow(t) {
     var neutral = !!t.transfer_group;
-    var sub = [t.note && t.source !== 'adjust' ? t.note : null, t.wallet_name].filter(Boolean).join(' · ');
-    return h('button', { type: 'button', class: 'tx', onclick: function (ev) { if (!ev.currentTarget.swiped) VG.quickAdd({ tx: t }); } },
-      neutral ? h('span', { class: 'cat neutral', 'aria-hidden': 'true' }, '⇄') : VG.badge(t.category_icon, t.category_color, txTitle(t)),
+    var sub = [VG.state.book ? t.recorded_by : null, t.note && t.source !== 'adjust' && t.source !== 'debt' ? t.note : null,
+      t.wallet_name].filter(Boolean).join(' · ');
+    if (t.source === 'debt') neutral = true;
+    return h('button', { type: 'button', class: 'tx', onclick: function (ev) {
+      if (ev.currentTarget.swiped) return;
+      if (t.source === 'debt') return VG.go('/debts');
+      if (VG.canWrite()) VG.quickAdd({ tx: t });
+    } },
+      neutral ? h('span', { class: 'cat neutral', 'aria-hidden': 'true' }, t.source === 'debt' ? '🤝' : '⇄') : VG.badge(t.category_icon, t.category_color, txTitle(t)),
       h('span', { class: 't' }, h('b', null, txTitle(t)),
         h('span', { class: 'lbl' }, t.status === 'pending' ? h('span', { class: 'tag warn' }, 'Chờ xác nhận') : t.source === 'bank' ? h('span', { class: 'tag' }, 'Tự động') : null,
           t.has_receipt ? '🧾 ' : null, sub)),
@@ -105,6 +112,7 @@
     c.appendChild(h('div', { class: 'topbar' },
       h('div', { class: 'grow' }, h('span', { class: 'lbl' }, 'Xin chào'), h('h1', null, u.full_name || 'bạn')),
       eyeButton()));
+    c.appendChild(VG.bookSwitch());
     if (!u.onboarded) {
       c.appendChild(h('div', { class: 'card' }, h('b', null, 'Hoàn tất làm quen'),
         h('p', { class: 'muted small' }, 'Tạo ví đầu tiên để bắt đầu ghi thu chi.'),
@@ -266,7 +274,7 @@
   // Tải file Excel bằng fetch (cần header đăng nhập) rồi lưu qua link tạm
   function downloadExcel(qs, btn) {
     btn.disabled = true;
-    var headers = { Authorization: 'Bearer ' + VG.getToken() };
+    var headers = VG.authHeaders();
     fetch('/api/export.xlsx' + (qs ? '?' + qs : ''), { headers: headers }).then(function (r) {
       if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Không xuất được file'); });
       var name = (r.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/);
@@ -285,6 +293,7 @@
     var c = VG.shell('/ledger');
     var exportBtn = h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Xuất Excel', title: 'Xuất Excel' }, '⤓');
     c.appendChild(VG.topbar('Sổ giao dịch', { action: exportBtn }));
+    c.appendChild(VG.bookSwitch());
     var search = h('input', { type: 'search', class: 'search', placeholder: 'Tìm ghi chú, danh mục hoặc số tiền (45k)', value: f.q, 'aria-label': 'Tìm kiếm', enterkeyhint: 'search' });
     var n = activeCount(f);
     var filterBtn = h('button', { type: 'button', class: 'chip' + (n ? ' on-soft' : '') }, '⚙ Lọc' + (n ? ' · ' + n : ''));

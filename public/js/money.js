@@ -17,6 +17,8 @@
     var content = h('main', { class: 'screen with-tabs' });
     var nav = h('nav', { class: 'tabs', 'aria-label': 'Điều hướng' }, TABS.map(function (t) {
       if (!t[0]) {
+        // Người xem sổ chung: không có nút +
+        if (!VG.canWrite()) return h('span', { class: 'tab', 'aria-hidden': 'true' });
         return h('button', { type: 'button', class: 'tab fab', 'aria-label': 'Thêm giao dịch', onclick: function () { VG.quickAdd(); } }, h('b', null, '+'));
       }
       return h('a', { href: '#' + t[0], class: 'tab ' + t[2] + (t[0] === active ? ' on' : ''), 'aria-current': t[0] === active ? 'page' : null }, h('i', { 'aria-hidden': 'true' }), t[1]);
@@ -42,6 +44,9 @@
       item('#/wallets', '👛', 'Ví', 'Thêm, sửa, ẩn ví; chuyển tiền'),
       item('#/categories', '🏷️', 'Danh mục', 'Sửa, sắp xếp, gộp danh mục'),
       item('#/reports', '📊', 'Báo cáo', 'Chi theo danh mục, thu chi 6 tháng'),
+      item('#/books', '👨‍👩‍👧', 'Sổ chung gia đình', VG.state.book ? 'Đang dùng: ' + VG.state.book.name : 'Cả nhà cùng ghi một sổ'),
+      item('#/groups', '🧮', 'Chia tiền nhóm', 'Đi chơi xong biết ai trả ai, có VietQR'),
+      item('#/debts', '🤝', 'Sổ nợ', 'Cho mượn, đi vay, trả từng phần'),
       item('#/bank', '🏦', 'Liên kết ngân hàng', 'Tự ghi giao dịch từ biến động số dư (SePay)'),
       item('#/settings', '⚙️', 'Cài đặt', 'Hồ sơ, mật khẩu, PIN, giao diện, sao lưu, xoá tài khoản')));
     var out = h('button', { type: 'button', class: 'btn ghost' }, 'Đăng xuất');
@@ -71,6 +76,17 @@
       var active = d.wallets.filter(function (w) { return !w.archived; });
       var archived = d.wallets.filter(function (w) { return w.archived; });
       body.appendChild(h('div', { class: 'card' }, h('span', { class: 'lbl' }, 'Tổng tài sản ròng'), h('span', { class: 'big' }, VG.show(d.total))));
+      // Sổ nợ (F16): tổng còn lại hai chiều
+      var debtBox = h('a', { href: '#/debts', class: 'plain' });
+      body.appendChild(debtBox);
+      VG.api('GET', '/debts').then(function (dd) {
+        if (!dd.debts.length) return;
+        debtBox.appendChild(h('div', { class: 'card' }, h('div', { class: 'split' },
+          h('div', null, h('span', { class: 'lbl' }, 'Người ta nợ mình'), h('b', { class: 'in block' }, VG.show(dd.totals.lent))),
+          h('div', null, h('span', { class: 'lbl' }, 'Mình nợ'), h('b', { class: 'out block' }, VG.show(dd.totals.borrowed)))),
+          dd.totals.overdue ? h('span', { class: 'tag danger' }, dd.totals.overdue + ' khoản quá hạn') : null,
+          h('span', { class: 'small' }, 'Mở sổ nợ ›')));
+      }).catch(function () {});
       if (!active.length) body.appendChild(h('div', { class: 'card empty' }, h('p', { class: 'muted' }, 'Chưa có ví. Thêm ví đầu tiên để bắt đầu.')));
       else body.appendChild(h('div', { class: 'card tight' }, active.map(walletRow)));
       if (archived.length) {

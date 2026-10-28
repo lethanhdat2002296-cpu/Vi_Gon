@@ -5,8 +5,10 @@ window.VG = (function () {
   'use strict';
 
   var TOKEN_KEY = 'vigon_token';
+  var BOOK_KEY = 'vigon_book';
   var app = document.getElementById('app');
-  var state = { user: null };
+  // book: sổ đang dùng { id, name, kind, role }; books: các sổ mình là thành viên (nạp sau /me)
+  var state = { user: null, book: null, books: null };
 
   function getToken() {
     try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; }
@@ -52,14 +54,37 @@ window.VG = (function () {
     else location.hash = path;
   }
 
-  function api(method, path, body) {
-    var headers = { 'Content-Type': 'application/json' };
+  // Sổ đang chọn (sổ chung) lưu theo máy; sổ cá nhân thì không gửi header
+  function savedBookId() {
+    try { return Number(localStorage.getItem(BOOK_KEY)) || null; } catch (e) { return null; }
+  }
+  function setBook(b) {
+    state.book = b && b.kind === 'shared' ? b : null;
+    try { if (state.book) localStorage.setItem(BOOK_KEY, String(state.book.id)); else localStorage.removeItem(BOOK_KEY); } catch (e) {}
+  }
+  function authHeaders(opts) {
+    var headers = {};
     var t = getToken();
     if (t) headers.Authorization = 'Bearer ' + t;
+    if (state.book && !(opts && opts.personal)) headers['X-Book-Id'] = String(state.book.id);
+    return headers;
+  }
+  function canWrite() { return !state.book || state.book.role !== 'viewer'; }
+
+  // opts.personal: luôn gọi trên sổ cá nhân (bỏ header X-Book-Id)
+  function api(method, path, body, opts) {
+    var headers = authHeaders(opts);
+    headers['Content-Type'] = 'application/json';
+    var t = getToken();
+    var withBook = !!headers['X-Book-Id'];
     return fetch('/api' + path, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined })
       .then(function (r) {
         return r.json().catch(function () { return {}; }).then(function (data) {
           if (r.status === 401 && t) { setToken(null); state.user = null; }
+          // Đã bị mời ra / sổ đã xoá → quay về sổ cá nhân
+          if (withBook && (r.status === 403 || r.status === 400) && /quyền với sổ|Sổ không hợp lệ/.test(data.error || '')) {
+            setBook(null); state.books = null;
+          }
           if (!r.ok) {
             var err = new Error(data.error || 'Có lỗi xảy ra, thử lại sau.');
             err.status = r.status;
@@ -86,7 +111,7 @@ window.VG = (function () {
   }
 
   function signOut() {
-    setToken(null); state.user = null; applyTheme(null);
+    setToken(null); state.user = null; state.books = null; setBook(null); applyTheme(null);
   }
 
   function queryParam(name) {
@@ -302,6 +327,7 @@ window.VG = (function () {
 
   return {
     state: state, app: app, h: h, render: render, go: go, api: api, getToken: getToken, setToken: setToken,
+    authHeaders: authHeaders, setBook: setBook, savedBookId: savedBookId, canWrite: canWrite,
     applyTheme: applyTheme, signedIn: signedIn, signOut: signOut, queryParam: queryParam,
     fmt: fmt, show: show, parseAmount: parseAmount, moneyInput: moneyInput, group: group,
     vnDate: vnDate, today: today, addDays: addDays, dayLabel: dayLabel, shortDate: shortDate,

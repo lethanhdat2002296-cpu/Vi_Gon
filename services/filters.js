@@ -3,7 +3,7 @@
 const { toId } = require('../utils/params');
 const { addDays } = require('../utils/time');
 
-const SOURCES = ['manual', 'adjust', 'transfer', 'bank', 'recurring', 'import'];
+const SOURCES = ['manual', 'adjust', 'transfer', 'bank', 'recurring', 'import', 'debt'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function validDate(s) {
@@ -53,7 +53,7 @@ function buildFilter(bookId, query, { forReport = false } = {}) {
   }
   if (query.category !== undefined && query.category !== '') {
     if (query.category === 'none') {
-      where.push('t.category_id IS NULL AND t.transfer_group IS NULL AND t.source <> \'adjust\'');
+      where.push("t.category_id IS NULL AND t.transfer_group IS NULL AND t.source NOT IN ('adjust', 'debt')");
     } else {
       const id = toId(query.category);
       if (!id) return { error: 'Danh mục không hợp lệ' };
@@ -80,8 +80,8 @@ function buildFilter(bookId, query, { forReport = false } = {}) {
     if (amt !== null) conds.push(`t.amount = ${p(amt)}`);
     where.push(`(${conds.join(' OR ')})`);
   }
-  // Báo cáo không tính chuyển giữa ví và điều chỉnh số dư
-  if (forReport) where.push('t.transfer_group IS NULL', "t.source <> 'adjust'");
+  // Báo cáo không tính chuyển giữa ví, điều chỉnh số dư, cho mượn / đi vay / trả nợ
+  if (forReport) where.push('t.transfer_group IS NULL', "t.source NOT IN ('adjust', 'debt')");
   return { where, vals };
 }
 

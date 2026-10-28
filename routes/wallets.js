@@ -172,6 +172,8 @@ router.delete('/:id', canWrite, async (req, res, next) => {
          AND NOT EXISTS (SELECT 1 FROM transactions t WHERE t.wallet_id = w.id)
          AND NOT EXISTS (SELECT 1 FROM goals g WHERE g.wallet_id = w.id)
          AND NOT EXISTS (SELECT 1 FROM recurring_rules r WHERE r.wallet_id = w.id)
+         AND NOT EXISTS (SELECT 1 FROM debts d WHERE d.wallet_id = w.id)
+         AND NOT EXISTS (SELECT 1 FROM debt_payments dp WHERE dp.wallet_id = w.id)
        RETURNING id`,
       [id, req.bookId]
     );

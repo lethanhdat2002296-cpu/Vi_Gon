@@ -73,4 +73,24 @@ async function memberRole(bookId, userId) {
   return r.rows[0] ? r.rows[0].role : null;
 }
 
-module.exports = { DEFAULT_CATEGORIES, ensurePersonalBook, memberRole };
+// Quyền + loại sổ, hoặc null nếu không phải thành viên
+async function membership(bookId, userId) {
+  const r = await db.query(
+    'SELECT m.role, b.kind FROM book_members m JOIN books b ON b.id = m.book_id WHERE m.book_id = $1 AND m.user_id = $2',
+    [bookId, userId]
+  );
+  return r.rows[0] || null;
+}
+
+// Tạo sổ chung: người tạo là chủ sổ, có sẵn bộ danh mục mặc định
+async function createSharedBook(userId, name) {
+  return db.withTransaction(async (client) => {
+    const ins = await client.query(`INSERT INTO books (owner_id, name, kind) VALUES ($1, $2, 'shared') RETURNING id`, [userId, name]);
+    const bookId = Number(ins.rows[0].id);
+    await client.query(`INSERT INTO book_members (book_id, user_id, role) VALUES ($1, $2, 'owner')`, [bookId, userId]);
+    await seedCategories(client, bookId);
+    return bookId;
+  });
+}
+
+module.exports = { DEFAULT_CATEGORIES, ensurePersonalBook, memberRole, membership, createSharedBook };
