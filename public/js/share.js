@@ -211,7 +211,7 @@
     VG.api('GET', '/groups').then(function (d) {
       body.textContent = '';
       if (!d.groups.length) {
-        body.appendChild(h('div', { class: 'card empty stack' }, h('p', { class: 'muted' }, 'Đi chơi, ăn chung? Tạo nhóm, ghi ai trả gì, app tính ai trả ai với ít lần chuyển nhất.'),
+        body.appendChild(VG.empty('🧮', 'Chưa có nhóm nào', 'Đi chơi, ăn chung? Tạo nhóm, ghi ai trả gì, app tính ai trả ai với ít lần chuyển nhất.',
           h('button', { type: 'button', class: 'btn', onclick: newGroup }, 'Tạo nhóm đầu tiên')));
         return;
       }
@@ -462,7 +462,7 @@
       body.appendChild(VG.seg([['lend', 'Cho mượn'], ['borrow', 'Đi vay']], debtTab, function (v) { debtTab = v; draw(); }));
       var list = data.debts.filter(function (d) { return d.direction === debtTab; });
       if (!list.length) {
-        body.appendChild(h('div', { class: 'card empty' }, h('p', { class: 'muted' }, debtTab === 'lend' ? 'Chưa cho ai mượn.' : 'Chưa vay ai.')));
+        body.appendChild(VG.empty('🤝', debtTab === 'lend' ? 'Chưa cho ai mượn' : 'Chưa vay ai', 'Bấm + để ghi. Có hạn trả thì Ví Gọn email nhắc trước 3 ngày.'));
         return;
       }
       body.appendChild(h('div', { class: 'card tight' }, list.map(function (d) {

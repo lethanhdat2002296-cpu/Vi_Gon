@@ -468,3 +468,60 @@ h1 { font-weight: 800; letter-spacing: -0.02em; }
 .budget-total .ring { width: 96px; height: 96px; }
 .big-sm { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
 .budget-total .chip { align-self: flex-start; }
+
+/* ============ Bên trong · làm lại (icon, thẻ ví, Sổ, Tôi, Báo cáo) ============ */
+.ic-svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ic-tile { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; flex: none; }
+.ic-tile .ic-svg { width: 21px; height: 21px; stroke-width: 2; }
+.sec-lbl { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 4px 4px 0; }
+.menu-item { padding: 12px 0; }
+.menu-lbl { font-weight: 600; }
+
+/* Trạng thái trống */
+.empty-state { align-items: center; text-align: center; padding: 28px 20px; gap: 6px; }
+.empty-ic { width: 64px; height: 64px; border-radius: 22px; background: var(--accent-soft); display: grid; place-items: center; font-size: 30px; margin-bottom: 4px; }
+
+/* Hồ sơ */
+.card.hero.profile { flex-direction: row; align-items: center; gap: 14px; }
+.card.hero.profile b { font-size: 18px; }
+.card.hero.profile .chev { color: rgba(255, 255, 255, 0.8); position: relative; z-index: 1; }
+.ava.lg { width: 56px; height: 56px; border-radius: 18px; font-size: 24px; background: rgba(255, 255, 255, 0.22); border: 1px solid rgba(255, 255, 255, 0.35); }
+.pill { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: rgba(255, 255, 255, 0.2); color: #fff; }
+.pill.warn { background: rgba(255, 206, 102, 0.95); color: #5A3B00; }
+.btn.logout { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--expense); }
+.hero-pills { display: flex; flex-wrap: wrap; gap: 8px; position: relative; z-index: 1; }
+.hero-pills span { font-size: 12px; font-weight: 600; background: rgba(255, 255, 255, 0.18); padding: 5px 10px; border-radius: 99px; }
+
+/* Thẻ ví */
+.wgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.wcard { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 2px; min-height: 132px; padding: 14px; border-radius: 20px; color: #fff; font-weight: 400; box-shadow: var(--card-shadow), 0 8px 18px rgba(11, 60, 55, 0.14); }
+.wcard::after { content: ''; position: absolute; right: -36px; bottom: -46px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); }
+.wcard-ic { width: 34px; height: 34px; border-radius: 11px; background: rgba(255, 255, 255, 0.24); display: grid; place-items: center; font-size: 17px; }
+.wcard-type { font-size: 11px; font-weight: 600; opacity: 0.9; }
+.wcard-name { margin-top: auto; font-size: 13px; font-weight: 600; opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); }
+.wcard-bal { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); }
+.wcard-sub { font-size: 11px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Sổ */
+.search-box { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; padding: 0 12px; color: var(--muted); }
+.search-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search-box .search { border: 0; padding: 11px 0; background: transparent; box-shadow: none; }
+.search-box .search:focus { box-shadow: none; }
+.filter-btn { position: relative; width: 46px; height: 46px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); display: grid; place-items: center; cursor: pointer; flex: none; }
+.filter-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.filter-btn b { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; border-radius: 99px; background: var(--expense); color: #fff; font-size: 11px; display: grid; place-items: center; padding: 0 5px; }
+.kind-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.stat-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-strip > .stat-count { grid-column: 1 / -1; background: none; border: 0; box-shadow: none; padding: 0 4px; }
+.stat-strip > div { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; min-width: 0; box-shadow: var(--card-shadow); }
+.stat-strip b { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day-card .day { padding: 12px 0 6px; border-bottom: 1px dashed var(--line); }
+.day-lbl { color: var(--ink); font-weight: 700; }
+.day-sum { font-weight: 600; }
+
+/* Báo cáo */
+.legend-row { flex-direction: column; align-items: stretch; gap: 5px; padding: 7px 0; }
+.legend-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.legend-top .grow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.share-bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; display: block; }
+.share-bar i { display: block; height: 100%; border-radius: 99px; width: auto; }

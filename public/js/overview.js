@@ -70,13 +70,13 @@
       var d = VG.vnDate(t.occurred_at);
       if (d !== lastDay) {
         lastDay = d;
-        sums = h('span', { class: 'lbl' });
+        sums = h('span', { class: 'day-sum' });
         sums.inc = 0; sums.exp = 0;
-        dayBox = h('div', { class: 'card tight' });
-        into.appendChild(h('div', { class: 'day' }, h('span', null, VG.dayLabel(d)), sums));
+        dayBox = h('div', { class: 'card tight day-card' },
+          h('div', { class: 'day' }, h('span', { class: 'day-lbl' }, VG.dayLabel(d)), sums));
         into.appendChild(dayBox);
       }
-      if (!t.transfer_group && t.source !== 'adjust') {
+      if (!t.transfer_group && t.source !== 'adjust' && t.source !== 'debt') {
         if (t.kind === 'income') sums.inc += t.amount; else sums.exp += t.amount;
         sums.textContent = [sums.inc ? '+' + VG.show(sums.inc, { symbol: false }) : null, sums.exp ? '−' + VG.show(sums.exp, { symbol: false }) : null].filter(Boolean).join('  ');
       }
@@ -93,9 +93,10 @@
     b.addEventListener('click', function () {
       var next = !VG.state.user.hide_amounts;
       VG.state.user.hide_amounts = next;
-      VG.route();
-      VG.api('PATCH', '/me', { hide_amounts: next }).catch(function (e) {
-        VG.state.user.hide_amounts = !next; VG.route(); VG.toast(e.message, { kind: 'err' });
+      VG.rerender();
+      // Lưu lựa chọn ở nền, không xoá đệm dữ liệu
+      VG.saveMe({ hide_amounts: next }).catch(function (e) {
+        VG.state.user.hide_amounts = !next; VG.rerender(); VG.toast(e.message, { kind: 'err' });
       });
     });
     return b;
@@ -327,11 +328,22 @@
     c.appendChild(VG.topbar('Sổ giao dịch', { action: exportBtn }));
     var books = VG.bookSwitch();
     if (books) c.appendChild(books);
-    var search = h('input', { type: 'search', class: 'search', placeholder: 'Tìm ghi chú, danh mục hoặc số tiền (45k)', value: f.q, 'aria-label': 'Tìm kiếm', enterkeyhint: 'search' });
+    var search = h('input', { type: 'search', class: 'search', placeholder: 'Tìm ghi chú, danh mục, số tiền (45k)', value: f.q, 'aria-label': 'Tìm kiếm', enterkeyhint: 'search' });
     var n = activeCount(f);
-    var filterBtn = h('button', { type: 'button', class: 'chip' + (n ? ' on-soft' : '') }, '⚙ Lọc' + (n ? ' · ' + n : ''));
-    c.appendChild(h('div', { class: 'search-row' }, search, filterBtn));
-    var sumLine = h('p', { class: 'lbl' });
+    var filterBtn = h('button', { type: 'button', class: 'filter-btn' + (n ? ' on' : ''), 'aria-label': 'Bộ lọc' }, VG.icon('filter'), n ? h('b', null, String(n)) : null);
+    c.appendChild(h('div', { class: 'search-row' }, h('label', { class: 'search-box' }, VG.icon('search'), search), filterBtn));
+    // Lọc nhanh theo loại
+    c.appendChild(h('div', { class: 'chips kind-chips' }, [['', 'Tất cả'], ['expense', 'Chi'], ['income', 'Thu'], ['transfer', 'Chuyển']].map(function (k) {
+      return h('button', { type: 'button', class: 'chip', 'aria-pressed': String((f.kind || '') === k[0]), onclick: function () {
+        f.kind = k[0]; saveFilter(f); VG.rerender();
+      } }, k[1]);
+    })));
+    // Tóm tắt bộ lọc: số giao dịch, thu, chi
+    var stCount = h('span', { class: 'lbl' }, ''), stIn = h('b', { class: 'in' }, '…'), stOut = h('b', { class: 'out' }, '…');
+    var sumLine = h('div', { class: 'stat-strip' },
+      h('div', null, h('span', { class: 'lbl' }, 'Thu'), stIn),
+      h('div', null, h('span', { class: 'lbl' }, 'Chi'), stOut),
+      h('div', { class: 'stat-count' }, stCount));
     var list = h('div', { class: 'stack' }, VG.loading());
     var more = h('button', { type: 'button', class: 'btn ghost hidden' }, 'Tải thêm');
     c.appendChild(sumLine);
@@ -362,14 +374,14 @@
       VG.api('GET', '/transactions?' + qs + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '')).then(function (d) {
         if (my !== seq) return;
         if (d.summary) {
-          sumLine.textContent = d.summary.count + ' giao dịch' +
-            (d.summary.income ? ' · thu +' + VG.show(d.summary.income) : '') +
-            (d.summary.expense ? ' · chi −' + VG.show(d.summary.expense) : '');
+          stCount.textContent = d.summary.count + ' giao dịch · không tính chuyển giữa ví';
+          stIn.textContent = '+' + VG.show(d.summary.income, { symbol: false });
+          stOut.textContent = '−' + VG.show(d.summary.expense, { symbol: false });
         }
         all = all.concat(d.transactions);
         cursor = d.next_cursor;
         list.textContent = '';
-        if (!all.length) list.appendChild(h('div', { class: 'card empty' }, h('p', { class: 'muted' }, qs ? 'Không có giao dịch khớp bộ lọc.' : 'Chưa có giao dịch nào.')));
+        if (!all.length) list.appendChild(VG.empty(qs ? '🔍' : '📒', qs ? 'Không có giao dịch khớp bộ lọc' : 'Chưa có giao dịch nào', qs ? 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá.' : 'Bấm nút + để ghi khoản đầu tiên.'));
         else txGroups(all, list, { swipe: true });
         if (all.length) list.appendChild(h('p', { class: 'lbl center-text' }, 'Vuốt trái để xoá · bấm để sửa'));
         more.className = 'btn ghost' + (cursor ? '' : ' hidden');
