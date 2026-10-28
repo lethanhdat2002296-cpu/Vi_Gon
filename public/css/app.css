@@ -525,3 +525,4 @@ h1 { font-weight: 800; letter-spacing: -0.02em; }
 .legend-top .grow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .share-bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; display: block; }
 .share-bar i { display: block; height: 100%; border-radius: 99px; width: auto; }
+.eye-btn { font-size: 22px; line-height: 1; }
