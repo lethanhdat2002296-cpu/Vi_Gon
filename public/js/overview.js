@@ -88,8 +88,8 @@
 
   // Nút ẩn/hiện số tiền (lưu vào tài khoản)
   function eyeButton() {
-    var b = h('button', { type: 'button', class: 'icon-btn', 'aria-pressed': String(!!VG.state.user.hide_amounts), 'aria-label': 'Ẩn số tiền' },
-      VG.state.user.hide_amounts ? '🙈' : '👁');
+    var b = h('button', { type: 'button', class: 'icon-btn eye-btn', 'aria-pressed': String(!!VG.state.user.hide_amounts), 'aria-label': 'Ẩn số tiền' },
+      VG.state.user.hide_amounts ? '🙈' : '🐵');
     b.addEventListener('click', function () {
       var next = !VG.state.user.hide_amounts;
       VG.state.user.hide_amounts = next;
