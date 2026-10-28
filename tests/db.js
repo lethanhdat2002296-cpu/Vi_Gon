@@ -21,7 +21,7 @@ export async function setupDb() {
 }
 
 export async function resetData() {
-  await pgPool.query('TRUNCATE users, login_attempts, rate_limits, email_tokens RESTART IDENTITY CASCADE');
+  await pgPool.query('TRUNCATE users, login_attempts, rate_limits, email_tokens, books RESTART IDENTITY CASCADE');
 }
 
 export async function teardownDb() {
@@ -30,4 +30,19 @@ export async function teardownDb() {
 
 export function sql(text, params) {
   return pgPool.query(text, params);
+}
+
+// Chạy app trên cổng ngẫu nhiên; trả { call, close }
+export async function startApp() {
+  const app = require('../app.js');
+  const server = app.listen(0);
+  await new Promise(r => server.once('listening', r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  async function call(method, path, body, token) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const r = await fetch(base + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    return { status: r.status, body: await r.json().catch(() => ({})) };
+  }
+  return { call, close: () => new Promise(r => server.close(r)) };
 }

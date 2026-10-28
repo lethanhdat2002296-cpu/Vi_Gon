@@ -2,6 +2,7 @@
 const express = require('express');
 const db = require('../lib/db');
 const auth = require('../services/auth');
+const books = require('../services/books');
 const email = require('../utils/email');
 const { authRequired } = require('../middleware/auth');
 const { rateLimit, checkRateLimit } = require('../utils/ratelimit');
@@ -37,6 +38,7 @@ router.post('/register', rateLimit('register', 10, HOUR), async (req, res, next)
     );
     const user = r.rows[0];
     if (!user) return res.status(409).json({ error: 'Email này đã có tài khoản. Hãy đăng nhập hoặc dùng "Quên mật khẩu".' });
+    await books.ensurePersonalBook(user.id);
 
     const token = await auth.createEmailToken(user.id, 'verify');
     const sent = await email.sendVerifyEmail(user.email, token, user.full_name);
