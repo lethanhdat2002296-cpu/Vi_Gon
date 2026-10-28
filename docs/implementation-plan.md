@@ -9,9 +9,9 @@ Mỗi bước dưới đây là **một Pull Request** vào `main`. Đánh dấu
 
 ## Bước 0 · Chuẩn bị hạ tầng (chủ repo làm)
 
-- [ ] Tạo database **Neon mới** (không dùng chung với app 5AM). Lấy connection string dạng *pooled*.
-- [ ] Tạo project **Vercel mới**, nối với repo `Vi_Gon`, nhánh production là `main`.
-- [ ] Đặt biến môi trường trên Vercel (Production + Preview):
+- [x] Tạo database **Neon mới** (không dùng chung với app 5AM). Lấy connection string dạng *pooled*.
+- [x] Tạo project **Vercel mới**, nối với repo `Vi_Gon`, nhánh production là `main`.
+- [x] Đặt biến môi trường trên Vercel (Production + Preview):
 
 | Biến | Bắt buộc | Ghi chú |
 |---|---|---|
@@ -30,8 +30,8 @@ Mỗi bước dưới đây là **một Pull Request** vào `main`. Đánh dấu
 
 Mục tiêu: repo chạy được `npm run dev`, `npm test`, `npm run lint`; deploy lên Vercel ra trang trống và `/api/health`.
 
-- [ ] `package.json`: Node ≥ 20, Express 4, `@neondatabase/serverless`, `ws`, `bcryptjs`, `jsonwebtoken`, `nodemailer`, `dotenv`, `cors`; dev: `vitest`, `eslint`, `@eslint/js`.
-- [ ] Cấu trúc thư mục (theo đúng kiểu repo `Server`):
+- [x] `package.json`: Node ≥ 20, Express 4, `@neondatabase/serverless`, `ws`, `bcryptjs`, `jsonwebtoken`, `nodemailer`, `dotenv`, `cors`; dev: `vitest`, `eslint`, `@eslint/js`.
+- [x] Cấu trúc thư mục (theo đúng kiểu repo `Server`):
   ```
   app.js            # Express app dùng chung local + Vercel, security headers, /api/health
   server.js         # chạy local
@@ -48,7 +48,7 @@ Mục tiêu: repo chạy được `npm run dev`, `npm test`, `npm run lint`; dep
   tests/
   vercel.json
   ```
-- [ ] Chép và chỉnh từ repo `Server` (`lethanhdat2002296-cpu/Server`):
+- [x] Chép và chỉnh từ repo `Server` (`lethanhdat2002296-cpu/Server`):
 
 | Lấy từ `Server` | Sang `Vi_Gon` | Chỉnh gì |
 |---|---|---|
@@ -60,9 +60,9 @@ Mục tiêu: repo chạy được `npm run dev`, `npm test`, `npm run lint`; dep
 | `utils/ratelimit.js`, `utils/time.js`, `utils/email.js` | `utils/` | đổi mẫu email sang Ví Gọn |
 | `eslint.config.js` | giữ | bỏ global `Chart`, `XLSX`… khi chưa dùng |
 
-- [ ] `utils/money.js`: `parseVnd("45.000") → 45000`, `formatVnd(45000) → "45.000 ₫"`, chặn số âm/không nguyên/vượt 999.999.999.999.
-- [ ] Migration `001_init.sql`: bảng `schema_migrations`, `users`, `login_attempts`, `rate_limits`.
-- [ ] Test: `money`, `time`, `ratelimit`.
+- [x] `utils/money.js`: `parseVnd("45.000") → 45000`, `formatVnd(45000) → "45.000 ₫"`, chặn số âm/không nguyên/vượt 999.999.999.999.
+- [x] Migration `001_init.sql`: bảng `schema_migrations`, `users`, `login_attempts`, `rate_limits`.
+- [x] Test: `money`, `time`, `ratelimit`.
 
 **Xong khi:** CI local xanh (test + lint), Vercel trả `{"ok":true,"db":"up"}` ở `/api/health`.
 

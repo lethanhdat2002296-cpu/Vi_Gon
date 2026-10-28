@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "node scripts/vercel-build.js",
   "rewrites": [
     {
       "source": "/api/(.*)",

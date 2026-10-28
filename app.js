@@ -5,6 +5,9 @@ const cors = require('cors');
 const db = require('./lib/db');
 const config = require('./config');
 
+const authRoutes = require('./routes/auth');
+const meRoutes = require('./routes/me');
+
 const app = express();
 const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 
@@ -35,21 +38,26 @@ app.use(express.json({ limit: '1mb' }));
 // Khi chạy local thì serve static từ public/ (trên Vercel do CDN serve)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routes API: thêm dần theo từng bước (routes/*.js)
+app.use('/api/auth', authRoutes);  // đăng ký, đăng nhập, email, mật khẩu
+app.use('/api/me', meRoutes);      // hồ sơ + cài đặt người đang đăng nhập
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)
 app.get('/api/health', async (req, res) => {
-  let dbState = 'down', latency = null;
+  let dbState = 'down', latency = null, migration = null;
   try {
     const t0 = Date.now();
     await db.query('SELECT 1');
     dbState = 'up'; latency = Date.now() - t0;
-  } catch (e) { /* db down */ }
+    // Migration mới nhất đã chạy → biết DB đã cập nhật chưa
+    const m = await db.query('SELECT filename FROM schema_migrations ORDER BY filename DESC LIMIT 1');
+    migration = m.rows[0] ? m.rows[0].filename : null;
+  } catch (e) { /* db down hoặc chưa có bảng schema_migrations */ }
   const ok = dbState === 'up';
   res.status(ok ? 200 : 503).json({
     ok,
     db: dbState,
     latency_ms: latency,
+    migration,
     has_smtp: !!(config.SMTP.host && config.SMTP.user && config.SMTP.pass),
     server_time: new Date().toISOString()
   });

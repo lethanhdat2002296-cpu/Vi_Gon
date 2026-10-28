@@ -48,7 +48,7 @@ if (require.main === module) {
     console.error('✗ Chưa set DATABASE_URL.');
     process.exit(1);
   }
-  const { pool } = require('../lib/db');
+  const pool = require('../lib/db').getPool();
   migrate({ pool })
     .then(() => pool.end())
     .catch(e => { console.error('✗', e.message); pool.end().finally(() => process.exit(1)); });
