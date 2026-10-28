@@ -166,10 +166,12 @@ window.VG = (function () {
     return opts && opts.symbol === false ? out : out + ' ₫';
   }
   // Hiển thị số tiền ở danh sách/tổng: che khi người dùng bật "Ẩn số tiền" (F08)
+  // Số tiền hiển thị. Chế độ "ẩn số tiền" chỉ che SỐ DƯ (bal), thu/chi vẫn hiện.
   function show(n, opts) {
-    if (state.user && state.user.hide_amounts) return opts && opts.symbol === false ? '••••••' : '•••••• ₫';
+    if (opts && opts.bal && state.user && state.user.hide_amounts) return opts.symbol === false ? '••••••' : '•••••• ₫';
     return fmt(n, opts);
   }
+  function bal(n, opts) { return show(n, Object.assign({}, opts, { bal: true })); }
   // "1.250.000" → 1250000; rỗng/sai → null
   function parseAmount(s) {
     var d = String(s || '').replace(/[^\d]/g, '');
@@ -414,7 +416,7 @@ window.VG = (function () {
 
   return {
     state: state, app: app, h: h, render: render, go: go, api: api, getToken: getToken, setToken: setToken,
-    icon: icon, iconTile: iconTile, empty: empty,
+    icon: icon, iconTile: iconTile, empty: empty, bal: bal,
     authHeaders: authHeaders, clearCache: clearCache, rerender: rerender, saveMe: saveMe, setBook: setBook, savedBookId: savedBookId, canWrite: canWrite,
     applyTheme: applyTheme, signedIn: signedIn, signOut: signOut, queryParam: queryParam,
     fmt: fmt, show: show, parseAmount: parseAmount, moneyInput: moneyInput, group: group,

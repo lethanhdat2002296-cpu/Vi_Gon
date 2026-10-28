@@ -71,7 +71,7 @@
       (w.exclude_from_total ? ' · ngoài tổng' : '');
     return h('a', { href: '#/wallets/' + w.id, class: 'tx' }, VG.badge(TYPE_ICON[w.type], w.color, w.name),
       h('span', { class: 't' }, h('b', null, w.name), h('span', { class: 'lbl' }, sub)),
-      h('span', { class: 'amt' + (w.balance < 0 ? ' out' : '') }, VG.show(w.balance, { symbol: false })));
+      h('span', { class: 'amt' + (w.balance < 0 ? ' out' : '') }, VG.bal(w.balance, { symbol: false })));
   }
   // Thẻ ví kiểu thẻ ngân hàng: nền chuyển sắc theo màu ví
   function walletCard(w) {
@@ -79,7 +79,7 @@
     var el = h('a', { href: '#/wallets/' + w.id, class: 'wcard' },
       h('div', { class: 'row-between' }, h('span', { class: 'wcard-ic', 'aria-hidden': 'true' }, TYPE_ICON[w.type]), h('span', { class: 'wcard-type' }, TYPE_LABEL[w.type])),
       h('span', { class: 'wcard-name' }, w.name),
-      h('b', { class: 'wcard-bal' }, VG.show(w.balance)),
+      h('b', { class: 'wcard-bal' }, VG.bal(w.balance)),
       credit && w.credit_limit ? h('span', { class: 'wcard-sub' }, 'Hạn mức ' + VG.show(w.credit_limit, { symbol: false }) + (w.due_day ? ' · hạn ngày ' + w.due_day : ''))
         : h('span', { class: 'wcard-sub' }, w.exclude_from_total ? 'Không tính vào tổng' : '\u00a0'));
     var c = /^#[0-9a-fA-F]{6}$/.test(w.color || '') ? w.color : '#0B8F72';
@@ -99,8 +99,8 @@
       var archived = d.wallets.filter(function (w) { return w.archived; });
       var assets = 0, debt = 0;
       active.forEach(function (w) { if (w.exclude_from_total) return; if (w.balance >= 0) assets += w.balance; else debt -= w.balance; });
-      body.appendChild(h('div', { class: 'card hero' }, h('span', { class: 'lbl' }, 'Tổng tài sản ròng · ' + active.length + ' ví'), h('span', { class: 'big' }, VG.show(d.total)),
-        h('div', { class: 'hero-pills' }, h('span', null, 'Có ' + VG.show(assets, { symbol: false })), debt ? h('span', null, 'Nợ thẻ ' + VG.show(debt, { symbol: false })) : null)));
+      body.appendChild(h('div', { class: 'card hero' }, h('span', { class: 'lbl' }, 'Tổng tài sản ròng · ' + active.length + ' ví'), h('span', { class: 'big' }, VG.bal(d.total)),
+        h('div', { class: 'hero-pills' }, h('span', null, 'Có ' + VG.bal(assets, { symbol: false })), debt ? h('span', null, 'Nợ thẻ ' + VG.bal(debt, { symbol: false })) : null)));
       // Sổ nợ (F16): tổng còn lại hai chiều
       var debtBox = h('a', { href: '#/debts', class: 'plain' });
       body.appendChild(debtBox);
@@ -119,9 +119,7 @@
           showArchived ? 'Ẩn danh sách ví đã ẩn' : 'Xem ' + archived.length + ' ví đã ẩn'));
         if (showArchived) body.appendChild(h('div', { class: 'card tight dimmed' }, archived.map(walletRow)));
       }
-      body.appendChild(h('div', { class: 'split' },
-        h('button', { type: 'button', class: 'btn ghost', onclick: function () { VG.quickAdd({ mode: 'transfer' }); } }, 'Chuyển tiền'),
-        h('a', { href: '#/wallets/new', class: 'btn' }, 'Thêm ví')));
+      body.appendChild(h('a', { href: '#/wallets/new', class: 'btn' }, 'Thêm ví'));
     }).catch(function (e) { fail(body, e); });
   };
 
@@ -192,8 +190,8 @@
       body.textContent = '';
       if (!w) return body.appendChild(h('div', { class: 'msg err' }, 'Không tìm thấy ví.'));
       body.appendChild(h('div', { class: 'card' }, h('span', { class: 'lbl' }, w.type === 'credit' ? 'Số dư (âm là dư nợ)' : 'Số dư hiện tại'),
-        h('span', { class: 'big' + (w.balance < 0 ? ' out' : '') }, VG.fmt(w.balance)),
-        w.type === 'credit' && w.credit_limit ? h('span', { class: 'lbl' }, 'Hạn mức ' + VG.fmt(w.credit_limit) + ' · còn dùng được ' + VG.fmt(w.credit_limit + w.balance)) : null));
+        h('span', { class: 'big' + (w.balance < 0 ? ' out' : '') }, VG.bal(w.balance)),
+        w.type === 'credit' && w.credit_limit ? h('span', { class: 'lbl' }, 'Hạn mức ' + VG.fmt(w.credit_limit) + ' · còn dùng được ' + VG.bal(w.credit_limit + w.balance)) : null));
 
       // Điều chỉnh số dư: nhập số thật, app ghi khoản "Điều chỉnh" bằng phần chênh
       var actual = VG.moneyInput({ id: 'w-actual', placeholder: VG.fmt(Math.abs(w.balance), { symbol: false }) });

@@ -526,3 +526,10 @@ h1 { font-weight: 800; letter-spacing: -0.02em; }
 .share-bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; display: block; }
 .share-bar i { display: block; height: 100%; border-radius: 99px; width: auto; }
 .eye-btn { font-size: 22px; line-height: 1; }
+/* Bảng điều khiển ở Tổng quan */
+.sec-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 2px 0; }
+.sec-head b { font-size: 17px; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; box-shadow: var(--card-shadow); }
+.kpi .lbl { font-size: 11.5px; line-height: 1.3; }
+.kpi b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

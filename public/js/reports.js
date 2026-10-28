@@ -90,7 +90,7 @@
       a = a1;
     });
     root.appendChild(svg('text', { x: cx, y: cy - 4, class: 'donut-lbl', 'text-anchor': 'middle' }, 'Tổng chi'));
-    root.appendChild(svg('text', { x: cx, y: cy + 16, class: 'donut-val', 'text-anchor': 'middle' }, VG.state.user.hide_amounts ? '••••••' : compact(data.total)));
+    root.appendChild(svg('text', { x: cx, y: cy + 16, class: 'donut-val', 'text-anchor': 'middle' }, compact(data.total)));
     return root;
   }
 
@@ -108,7 +108,7 @@
     for (var i = 0; i <= 3; i++) {
       var gy = y(step * i);
       root.appendChild(svg('line', { x1: padL, x2: W, y1: gy, y2: gy, class: i ? 'grid' : 'axis' }));
-      if (i) root.appendChild(svg('text', { x: padL - 6, y: gy + 4, class: 'tick', 'text-anchor': 'end' }, VG.state.user.hide_amounts ? '•' : compact(step * i)));
+      if (i) root.appendChild(svg('text', { x: padL - 6, y: gy + 4, class: 'tick', 'text-anchor': 'end' }, compact(step * i)));
     }
     var gw = (W - padL) / months.length, bw = Math.min(14, gw / 3.2);
     months.forEach(function (m, idx) {
@@ -133,6 +133,9 @@
     });
     return root;
   }
+
+  // Dùng lại ở Tổng quan (bảng điều khiển)
+  VG.charts = { slicesOf: slicesOf, donut: donut, bars: bars, pct: pct, compact: compact };
 
   // ============ MÀN BÁO CÁO ============
   VG.screens.reports = function () {
