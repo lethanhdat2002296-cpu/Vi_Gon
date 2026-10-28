@@ -12,24 +12,38 @@
 
   function input(attrs) { return h('input', attrs); }
 
-  function afterSignIn(d) {
-    VG.signedIn(d);
+  var EMAIL_KEY = 'vigon_email';
+  function lastEmail() { try { return localStorage.getItem(EMAIL_KEY) || ''; } catch (e) { return ''; } }
+
+  function afterSignIn(d, remember) {
+    VG.signedIn(d, remember);
+    try { if (remember === false) localStorage.removeItem(EMAIL_KEY); else localStorage.setItem(EMAIL_KEY, d.user.email); } catch (e) {}
     VG.go(d.user.onboarded ? '/' : '/onboarding');
   }
 
   VG.screens.login = function () {
     var msg = VG.message();
     var btn = h('button', { class: 'btn', type: 'submit' }, 'Đăng nhập');
-    var form = h('form', { class: 'stack', novalidate: true },
-      VG.field('Email', input({ id: 'email', name: 'email', type: 'email', autocomplete: 'email', inputmode: 'email', required: true })),
+    var remember = VG.toggle('Ghi nhớ đăng nhập', true, 'Tắt nếu dùng máy chung: đóng trình duyệt là thoát');
+    var email = input({ id: 'email', name: 'email', type: 'email', autocomplete: 'username', inputmode: 'email', required: true, value: lastEmail() });
+    var form = h('form', { class: 'stack', novalidate: true, method: 'post', action: '#/login' },
+      VG.field('Email', email),
       VG.field('Mật khẩu', input({ id: 'password', name: 'password', type: 'password', autocomplete: 'current-password', required: true })),
-      msg, btn,
+      remember, msg, btn,
       h('a', { href: '#/forgot', class: 'small' }, 'Quên mật khẩu?'));
     VG.onSubmit(form, btn, msg, function () {
-      return VG.api('POST', '/auth/login', { email: form.email.value, password: form.password.value }).then(afterSignIn);
+      var keep = remember.input.checked;
+      return VG.api('POST', '/auth/login', { email: form.email.value, password: form.password.value }).then(function (d) {
+        // Nhờ trình duyệt lưu mật khẩu (Chrome/Android: hiện hỏi "Lưu mật khẩu?", lần sau tự điền)
+        if (keep && window.PasswordCredential && navigator.credentials) {
+          try { navigator.credentials.store(new window.PasswordCredential({ id: form.email.value, password: form.password.value, name: d.user.full_name || undefined })).catch(function () {}); } catch (e) {}
+        }
+        afterSignIn(d, keep);
+      });
     });
     VG.render(h('div', { class: 'screen' }, header('Đăng nhập', 'Chào mừng bạn quay lại.'), form,
       h('div', { class: 'bottom' }, h('p', { class: 'muted small' }, 'Chưa có tài khoản? ', h('a', { href: '#/register' }, 'Đăng ký')))));
+    if (email.value) form.password.focus();
   };
 
   VG.screens.register = function () {
