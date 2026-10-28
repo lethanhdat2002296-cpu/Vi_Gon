@@ -12,6 +12,7 @@
     [/^\/reports$/, S.reports],
     [/^\/plan$/, S.plan],
     [/^\/me$/, S.me],
+    [/^\/settings$/, S.settings],
     [/^\/wallets$/, S.wallets],
     [/^\/wallets\/new$/, S.walletNew],
     [/^\/wallets\/(\d+)$/, S.walletEdit],
@@ -33,7 +34,8 @@
     if (!VG.getToken()) return VG.go('/login');
     var match = null, screen = S.home;
     PRIVATE.some(function (r) { match = path.match(r[0]); if (match) screen = r[1]; return !!match; });
-    var run = function () { screen.apply(null, match ? match.slice(1) : []); };
+    // Có PIN và đã lâu không dùng → màn khoá thay cho nội dung
+    var run = function () { if (VG.checkLock()) return; screen.apply(null, match ? match.slice(1) : []); };
     if (VG.state.user) return run();
     VG.api('GET', '/me')
       .then(function (d) { VG.state.user = d.user; VG.applyTheme(d.user); run(); })

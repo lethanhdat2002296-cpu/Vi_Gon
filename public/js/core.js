@@ -79,6 +79,8 @@ window.VG = (function () {
 
   function signedIn(data) {
     setToken(data.token);
+    // Vừa đăng nhập bằng mật khẩu → không bắt nhập PIN ngay
+    try { localStorage.setItem('vigon_last_active', String(Date.now())); } catch (e) {}
     state.user = data.user;
     applyTheme(data.user);
   }
