@@ -13,6 +13,26 @@
 
   // ============ KHUNG CÓ THANH TAB ============
   var TABS = [['/', 'Tổng quan', 'home'], ['/ledger', 'Sổ', 'book'], [null, '', 'add'], ['/plan', 'Kế hoạch', 'plan'], ['/me', 'Tôi', 'me']];
+  // Icon nét (24×24, màu theo chữ của tab)
+  var TAB_ICONS = {
+    home: ['M3.5 10.2 12 3.5l8.5 6.7V19a1.5 1.5 0 0 1-1.5 1.5h-4.2v-5.6H9.2v5.6H5A1.5 1.5 0 0 1 3.5 19z'],
+    book: ['M6 3.5h10.5A1.5 1.5 0 0 1 18 5v15.5H6.5A2 2 0 0 1 4.5 18.5V5A1.5 1.5 0 0 1 6 3.5z', 'M8.5 8.5h6', 'M8.5 12h6', 'M8.5 15.5h3.5'],
+    plan: ['M12 3.5a8.5 8.5 0 1 0 8.5 8.5', 'M12 7.5a4.5 4.5 0 1 0 4.5 4.5', 'M12 12l7-7', 'M16 5h3v3'],
+    me: ['M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4.5 20.5c.8-3.7 3.7-5.8 7.5-5.8s6.7 2.1 7.5 5.8']
+  };
+  function tabIcon(name) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('class', 'tab-ic');
+    TAB_ICONS[name].forEach(function (d) {
+      var p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', d);
+      svg.appendChild(p);
+    });
+    return svg;
+  }
   function shell(active) {
     var content = h('main', { class: 'screen with-tabs' });
     var nav = h('nav', { class: 'tabs', 'aria-label': 'Điều hướng' }, TABS.map(function (t) {
@@ -21,7 +41,7 @@
         if (!VG.canWrite()) return h('span', { class: 'tab', 'aria-hidden': 'true' });
         return h('button', { type: 'button', class: 'tab fab', 'aria-label': 'Thêm giao dịch', onclick: function () { VG.quickAdd(); } }, h('b', null, '+'));
       }
-      return h('a', { href: '#' + t[0], class: 'tab ' + t[2] + (t[0] === active ? ' on' : ''), 'aria-current': t[0] === active ? 'page' : null }, h('i', { 'aria-hidden': 'true' }), t[1]);
+      return h('a', { href: '#' + t[0], class: 'tab ' + t[2] + (t[0] === active ? ' on' : ''), 'aria-current': t[0] === active ? 'page' : null }, tabIcon(t[2]), t[1]);
     }));
     VG.render(content, nav);
     return content;

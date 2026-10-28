@@ -127,9 +127,9 @@ details[open] > summary { margin-bottom: 8px; }
   padding: 6px 4px calc(8px + env(safe-area-inset-bottom));
 }
 .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--muted); font-weight: 500; padding: 4px 0; background: none; border: 0; font-family: inherit; }
-.tab i { width: 22px; height: 22px; border-radius: 7px; background: var(--surface-2); }
+.tab-ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tab.on { color: var(--accent); font-weight: 600; }
-.tab.on i { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+.tab.on .tab-ic { stroke-width: 2.2; }
 .tab.fab { cursor: pointer; }
 .tab.fab b {
   width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center;
