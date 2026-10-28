@@ -54,7 +54,7 @@
     else sub = h('span', { class: 'lbl' }, 'Còn ' + VG.show(b.remaining));
     var chip = b.level === 'ok' ? null : h('span', { class: 'chip ' + (b.level === 'over' ? 'bad' : 'warn') }, b.percent + '%');
     return h('button', { type: 'button', class: 'card plan-card', onclick: function () { onEdit(b); } },
-      h('div', { class: 'row-between' }, h('span', { class: 'name' }, (b.icon ? b.icon + ' ' : '') + b.name), chip),
+      h('div', { class: 'row-between' }, h('span', { class: 'budget-name' }, VG.badge(b.icon || '💰', b.color, b.name), h('span', { class: 'name' }, b.name)), chip),
       h('div', { class: 'row-between' }, h('b', { class: 'amt' }, money(b.spent) + ' / ' + money(b.limit)), h('span', { class: 'lbl' }, b.level === 'ok' ? b.percent + '%' : '')),
       bar(b.pct, b.level === 'over' ? 'b' : b.level === 'warn' ? 'w' : ''),
       sub,
@@ -107,6 +107,17 @@
         box.appendChild(h('div', { class: 'card empty' }, h('b', null, 'Chưa có ngân sách'),
           h('p', { class: 'muted small' }, 'Đặt trần chi cho từng danh mục (ví dụ Ăn uống 4.000.000 ₫/tháng). Ví Gọn nhắc khi chạm 80% và 100%.')));
         return;
+      }
+      // Vòng tổng: ngân sách "Tổng chi tiêu" nếu có, không thì cộng các danh mục
+      var total = d.budgets.filter(function (b) { return !b.category_id; })[0];
+      var spent = total ? total.spent : d.budgets.reduce(function (s, b) { return s + b.spent; }, 0);
+      var limit = total ? total.limit : d.budgets.reduce(function (s, b) { return s + b.limit; }, 0);
+      if (limit > 0) {
+        var left = limit - spent;
+        box.appendChild(h('div', { class: 'card goal-row budget-total' }, ring(Math.min(1, spent / limit)),
+          h('div', { class: 'stack-sm grow' }, h('span', { class: 'lbl' }, total ? 'Tổng chi tiêu tháng' : 'Cộng các ngân sách'),
+            h('b', { class: 'big-sm' }, VG.show(spent)), h('span', { class: 'lbl' }, 'trên ' + VG.show(limit)),
+            h('span', { class: 'chip ' + (left < 0 ? 'bad' : spent / limit >= 0.8 ? 'warn' : 'ok') }, left < 0 ? 'Vượt ' + money(-left) + ' ₫' : 'Còn ' + money(left) + ' ₫'))));
       }
       d.budgets.forEach(function (b) { box.appendChild(budgetCard(b, function (x) { budgetForm(x, VG.route); })); });
       box.appendChild(h('p', { class: 'lbl center-text' }, 'Xanh dưới 80% · vàng từ 80% · đỏ khi vượt. Không tính chuyển giữa ví.'));
