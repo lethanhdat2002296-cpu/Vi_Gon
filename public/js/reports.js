@@ -195,6 +195,15 @@
         VG.go('/ledger');
       }
 
+      // Thẻ tổng chi kỳ này, so với kỳ trước
+      var diff = cat.total - cat.prev_total;
+      body.appendChild(h('div', { class: 'card hero' },
+        h('span', { class: 'lbl' }, 'Tổng chi · ' + r.label + (partial ? ' (đến hôm nay)' : '')),
+        h('span', { class: 'big' }, VG.show(cat.total)),
+        h('div', { class: 'hero-pills' },
+          cat.prev_total ? h('span', null, (diff > 0 ? '▲ ' : diff < 0 ? '▼ ' : '') + (diff === 0 ? 'Bằng kỳ trước' : VG.show(Math.abs(diff), { symbol: false }) + ' so với kỳ trước')) : h('span', null, 'Kỳ trước chưa có chi'),
+          h('span', null, cat.categories.length + ' danh mục'))));
+
       var card = h('div', { class: 'card' }, h('b', null, 'Chi theo danh mục'));
       if (!cat.total) {
         card.appendChild(h('p', { class: 'muted small' }, 'Chưa có khoản chi nào trong kỳ này.'));
@@ -203,8 +212,12 @@
         var legend = h('ul', { class: 'legend' }, slices.map(function (s) {
           var dot = h('i', { 'aria-hidden': 'true' });
           dot.style.background = s.color;
+          var fill = h('i');
+          fill.style.width = Math.max(2, Math.round(s.share * 100)) + '%';
+          fill.style.background = s.color;
           return h('li', null, h('button', { type: 'button', class: 'legend-row', disabled: !!s.other, onclick: function () { openLedger(s); } },
-            dot, h('span', { class: 'grow' }, s.name), h('span', { class: 'lbl' }, pct(s.share)), h('b', { class: 'amt' }, VG.show(s.amount, { symbol: false }))));
+            h('span', { class: 'legend-top' }, dot, h('span', { class: 'grow' }, s.name), h('span', { class: 'lbl' }, pct(s.share)), h('b', { class: 'amt' }, VG.show(s.amount, { symbol: false }))),
+            h('span', { class: 'share-bar', 'aria-hidden': 'true' }, fill)));
         }));
         card.appendChild(h('div', { class: 'donut-row' }, donut(cat, slices, openLedger), legend));
         card.appendChild(h('p', { class: 'lbl' }, 'Tổng chi ' + VG.show(cat.total) + ' · không tính chuyển giữa ví và điều chỉnh số dư. Bấm một phần để xem giao dịch.'));

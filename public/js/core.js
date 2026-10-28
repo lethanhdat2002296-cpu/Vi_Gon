@@ -46,9 +46,11 @@ window.VG = (function () {
 
   function render() {
     closeSheet();
+    var keep = state.keepScroll ? window.scrollY : 0;
     app.textContent = '';
     Array.prototype.slice.call(arguments).forEach(function (n) { if (n) app.appendChild(n); });
-    window.scrollTo(0, 0);
+    window.scrollTo(0, keep);
+    if (state.keepScroll) return;
     var first = app.querySelector('input[autofocus], form input');
     if (first) first.focus();
   }
@@ -75,8 +77,27 @@ window.VG = (function () {
   }
   function canWrite() { return !state.book || state.book.role !== 'viewer'; }
 
-  // opts.personal: luôn gọi trên sổ cá nhân (bỏ header X-Book-Id)
+  // Bộ nhớ đệm GET ngắn hạn: quay lại màn vừa xem, bấm ẩn số tiền… vẽ lại ngay không gọi máy chủ.
+  // Mọi lệnh ghi (POST/PATCH/PUT/DELETE) xoá sạch đệm → sau khi sửa luôn thấy số mới.
+  var CACHE_MS = 30000;
+  var cache = {};
+  function clearCache() { cache = {}; }
+
+  // opts.personal: luôn gọi trên sổ cá nhân (bỏ header X-Book-Id); opts.fresh: bỏ qua đệm
   function api(method, path, body, opts) {
+    var isGet = method === 'GET';
+    if (!isGet) clearCache();
+    var key = isGet ? (opts && opts.personal ? 'p' : (state.book ? state.book.id : 'p')) + ' ' + path : null;
+    if (isGet && !(opts && opts.fresh) && cache[key] && Date.now() - cache[key].at < CACHE_MS) {
+      return Promise.resolve(JSON.parse(cache[key].json));
+    }
+    return rawApi(method, path, body, opts).then(function (data) {
+      if (isGet) cache[key] = { at: Date.now(), json: JSON.stringify(data) };
+      return data;
+    });
+  }
+
+  function rawApi(method, path, body, opts) {
     var headers = authHeaders(opts);
     headers['Content-Type'] = 'application/json';
     var t = getToken();
@@ -106,6 +127,16 @@ window.VG = (function () {
     else document.documentElement.removeAttribute('data-theme');
   }
 
+  // Vẽ lại màn hiện tại tại chỗ (dùng dữ liệu đệm, giữ vị trí cuộn, không nhảy con trỏ)
+  function rerender() {
+    var y = window.scrollY;
+    state.keepScroll = true;
+    try { VG.route(); } finally { state.keepScroll = false; }
+    window.requestAnimationFrame(function () { window.scrollTo(0, y); });
+  }
+  // Lưu cài đặt nhỏ của tài khoản mà không xoá đệm dữ liệu
+  function saveMe(patch) { return rawApi('PATCH', '/me', patch); }
+
   function signedIn(data, remember) {
     setToken(data.token, remember);
     // Vừa đăng nhập bằng mật khẩu → không bắt nhập PIN ngay
@@ -115,7 +146,7 @@ window.VG = (function () {
   }
 
   function signOut() {
-    setToken(null); state.user = null; state.books = null; setBook(null); applyTheme(null);
+    setToken(null); state.user = null; state.books = null; setBook(null); applyTheme(null); clearCache();
   }
 
   function queryParam(name) {
@@ -317,6 +348,53 @@ window.VG = (function () {
   }
 
   // Ô biểu tượng tròn màu của danh mục / ví
+  // ============ ICON NÉT (24×24, màu theo chữ) ============
+  var ICONS = {
+    home: ['M3.5 10.2 12 3.5l8.5 6.7V19a1.5 1.5 0 0 1-1.5 1.5h-4.2v-5.6H9.2v5.6H5A1.5 1.5 0 0 1 3.5 19z'],
+    book: ['M6 3.5h10.5A1.5 1.5 0 0 1 18 5v15.5H6.5A2 2 0 0 1 4.5 18.5V5A1.5 1.5 0 0 1 6 3.5z', 'M8.5 8.5h6', 'M8.5 12h6', 'M8.5 15.5h3.5'],
+    plan: ['M12 3.5a8.5 8.5 0 1 0 8.5 8.5', 'M12 7.5a4.5 4.5 0 1 0 4.5 4.5', 'M12 12l7-7', 'M16 5h3v3'],
+    me: ['M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4.5 20.5c.8-3.7 3.7-5.8 7.5-5.8s6.7 2.1 7.5 5.8'],
+    search: ['M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13z', 'M15.5 15.5 20 20'],
+    filter: ['M4 6h16', 'M7 12h10', 'M10 18h4'],
+    wallet: ['M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3', 'M4 7.5v10A2.5 2.5 0 0 0 6.5 20H20V8H6.5A2.5 2.5 0 0 1 4 5.5', 'M16 14h.01'],
+    tag: ['M3.5 12.5V4.5h8l9 9-8 8z', 'M8 9h.01'],
+    chart: ['M4 20V10', 'M10 20V4', 'M16 20v-7', 'M21 20H3'],
+    users: ['M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z', 'M2.5 20c.6-3.3 3.2-5.2 6.5-5.2s5.9 1.9 6.5 5.2', 'M16 4.3a3.5 3.5 0 0 1 0 6.4', 'M18 14.9c2 .7 3.2 2.4 3.5 5.1'],
+    split: ['M4 4h16v16H4z', 'M4 12h16', 'M12 4v16'],
+    hand: ['M7 11.5V6a1.5 1.5 0 0 1 3 0v5', 'M10 10.5V4.5a1.5 1.5 0 0 1 3 0v6', 'M13 10.5V6a1.5 1.5 0 0 1 3 0v6', 'M16 9.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5a6 6 0 0 1-4.8-2.4L4 15a1.6 1.6 0 0 1 2.4-2.1L7 13.5'],
+    bank: ['M3 9.5 12 4l9 5.5', 'M5 10v8', 'M9.5 10v8', 'M14.5 10v8', 'M19 10v8', 'M3 20h18'],
+    gear: ['M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'],
+    logout: ['M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15', 'M10 16l-4-4 4-4', 'M6 12h10'],
+    check: ['M5 12.5l4.5 4.5L19 7.5'],
+    plus: ['M12 5v14', 'M5 12h14'],
+    swap: ['M4 8h13l-3-3', 'M20 16H7l3 3']
+  };
+  function icon(name, cls) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('aria-hidden', 'true');
+    s.setAttribute('class', 'ic-svg' + (cls ? ' ' + cls : ''));
+    (ICONS[name] || []).forEach(function (d) {
+      var p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', d);
+      s.appendChild(p);
+    });
+    return s;
+  }
+  // Ô icon có nền nhạt màu riêng (menu, tiêu đề mục)
+  function iconTile(name, color) {
+    var t = h('span', { class: 'ic-tile', 'aria-hidden': 'true' }, icon(name));
+    t.style.color = color;
+    t.style.background = color + '1f';
+    return t;
+  }
+  // Trạng thái trống: biểu tượng lớn + tiêu đề + gợi ý (+ nút)
+  function empty(emoji, title, sub, action) {
+    return h('div', { class: 'card empty-state' }, h('span', { class: 'empty-ic', 'aria-hidden': 'true' }, emoji),
+      h('b', null, title), sub ? h('p', { class: 'muted small' }, sub) : null, action || null);
+  }
+
   // Nền nhạt cùng màu danh mục, chữ/biểu tượng màu đậm
   function badge(icon, color, fallback) {
     var c = /^#[0-9a-fA-F]{6}$/.test(color || '') ? color : '#9AA79F';
@@ -336,7 +414,8 @@ window.VG = (function () {
 
   return {
     state: state, app: app, h: h, render: render, go: go, api: api, getToken: getToken, setToken: setToken,
-    authHeaders: authHeaders, setBook: setBook, savedBookId: savedBookId, canWrite: canWrite,
+    icon: icon, iconTile: iconTile, empty: empty,
+    authHeaders: authHeaders, clearCache: clearCache, rerender: rerender, saveMe: saveMe, setBook: setBook, savedBookId: savedBookId, canWrite: canWrite,
     applyTheme: applyTheme, signedIn: signedIn, signOut: signOut, queryParam: queryParam,
     fmt: fmt, show: show, parseAmount: parseAmount, moneyInput: moneyInput, group: group,
     vnDate: vnDate, today: today, addDays: addDays, dayLabel: dayLabel, shortDate: shortDate,

@@ -13,26 +13,7 @@
 
   // ============ KHUNG CÓ THANH TAB ============
   var TABS = [['/', 'Tổng quan', 'home'], ['/ledger', 'Sổ', 'book'], [null, '', 'add'], ['/plan', 'Kế hoạch', 'plan'], ['/me', 'Tôi', 'me']];
-  // Icon nét (24×24, màu theo chữ của tab)
-  var TAB_ICONS = {
-    home: ['M3.5 10.2 12 3.5l8.5 6.7V19a1.5 1.5 0 0 1-1.5 1.5h-4.2v-5.6H9.2v5.6H5A1.5 1.5 0 0 1 3.5 19z'],
-    book: ['M6 3.5h10.5A1.5 1.5 0 0 1 18 5v15.5H6.5A2 2 0 0 1 4.5 18.5V5A1.5 1.5 0 0 1 6 3.5z', 'M8.5 8.5h6', 'M8.5 12h6', 'M8.5 15.5h3.5'],
-    plan: ['M12 3.5a8.5 8.5 0 1 0 8.5 8.5', 'M12 7.5a4.5 4.5 0 1 0 4.5 4.5', 'M12 12l7-7', 'M16 5h3v3'],
-    me: ['M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4.5 20.5c.8-3.7 3.7-5.8 7.5-5.8s6.7 2.1 7.5 5.8']
-  };
-  function tabIcon(name) {
-    var NS = 'http://www.w3.org/2000/svg';
-    var svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('class', 'tab-ic');
-    TAB_ICONS[name].forEach(function (d) {
-      var p = document.createElementNS(NS, 'path');
-      p.setAttribute('d', d);
-      svg.appendChild(p);
-    });
-    return svg;
-  }
+  function tabIcon(name) { return VG.icon(name, 'tab-ic'); }
   function shell(active) {
     var content = h('main', { class: 'screen with-tabs' });
     var nav = h('nav', { class: 'tabs', 'aria-label': 'Điều hướng' }, TABS.map(function (t) {
@@ -55,21 +36,29 @@
     var u = VG.state.user;
     var c = shell('/me');
     c.appendChild(VG.topbar('Tôi'));
-    c.appendChild(h('div', { class: 'card' }, h('b', null, u.full_name || 'Chưa đặt tên'), h('span', { class: 'muted small' }, u.email)));
-    function item(href, icon, label, sub) {
-      return h('a', { href: href, class: 'menu-item' }, h('span', { class: 'ic', 'aria-hidden': 'true' }, icon),
-        h('span', { class: 'grow' }, h('span', null, label), sub ? h('span', { class: 'muted small block' }, sub) : null), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
+    var name = (u.full_name || '').trim();
+    c.appendChild(h('a', { href: '#/settings', class: 'plain' }, h('div', { class: 'card hero profile' },
+      h('span', { class: 'ava lg' }, (name.split(' ').pop() || u.email).charAt(0).toUpperCase()),
+      h('div', { class: 'grow' }, h('b', { class: 'block' }, name || 'Chưa đặt tên'), h('span', { class: 'lbl block' }, u.email),
+        h('span', { class: 'pill' + (u.email_verified ? '' : ' warn') }, u.email_verified ? '✓ Đã xác minh email' : 'Chưa xác minh email')),
+      h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))));
+    function item(href, ic, color, label, sub) {
+      return h('a', { href: href, class: 'menu-item' }, VG.iconTile(ic, color),
+        h('span', { class: 'grow' }, h('span', { class: 'menu-lbl' }, label), sub ? h('span', { class: 'muted small block' }, sub) : null), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
     }
-    c.appendChild(h('div', { class: 'card tight' },
-      item('#/wallets', '👛', 'Ví', 'Thêm, sửa, ẩn ví; chuyển tiền'),
-      item('#/categories', '🏷️', 'Danh mục', 'Sửa, sắp xếp, gộp danh mục'),
-      item('#/reports', '📊', 'Báo cáo', 'Chi theo danh mục, thu chi 6 tháng'),
-      item('#/books', '👨‍👩‍👧', 'Sổ chung gia đình', VG.state.book ? 'Đang dùng: ' + VG.state.book.name : 'Cả nhà cùng ghi một sổ'),
-      item('#/groups', '🧮', 'Chia tiền nhóm', 'Đi chơi xong biết ai trả ai, có VietQR'),
-      item('#/debts', '🤝', 'Sổ nợ', 'Cho mượn, đi vay, trả từng phần'),
-      item('#/bank', '🏦', 'Liên kết ngân hàng', 'Tự ghi giao dịch từ biến động số dư (SePay)'),
-      item('#/settings', '⚙️', 'Cài đặt', 'Hồ sơ, mật khẩu, PIN, giao diện, sao lưu, xoá tài khoản')));
-    var out = h('button', { type: 'button', class: 'btn ghost' }, 'Đăng xuất');
+    function group(title, items) { return h('div', { class: 'stack-sm' }, h('span', { class: 'sec-lbl' }, title), h('div', { class: 'card tight' }, items)); }
+    c.appendChild(group('Tiền của tôi', [
+      item('#/wallets', 'wallet', '#0B8F72', 'Ví', 'Thêm, sửa, ẩn ví; chuyển tiền'),
+      item('#/categories', 'tag', '#E07A2F', 'Danh mục', 'Sửa, sắp xếp, gộp danh mục'),
+      item('#/reports', 'chart', '#3F6FE0', 'Báo cáo', 'Chi theo danh mục, thu chi 6 tháng')]));
+    c.appendChild(group('Cùng dùng', [
+      item('#/books', 'users', '#8B5CF6', 'Sổ chung gia đình', VG.state.book ? 'Đang dùng: ' + VG.state.book.name : 'Cả nhà cùng ghi một sổ'),
+      item('#/groups', 'split', '#E6488A', 'Chia tiền nhóm', 'Đi chơi xong biết ai trả ai, có VietQR'),
+      item('#/debts', 'hand', '#D9A10B', 'Sổ nợ', 'Cho mượn, đi vay, trả từng phần')]));
+    c.appendChild(group('Tự động & tài khoản', [
+      item('#/bank', 'bank', '#0B6E99', 'Liên kết ngân hàng', 'Tự ghi giao dịch từ biến động số dư (SePay)'),
+      item('#/settings', 'gear', '#5F7A72', 'Cài đặt', 'Hồ sơ, mật khẩu, PIN, giao diện, sao lưu')]));
+    var out = h('button', { type: 'button', class: 'btn ghost logout' }, VG.icon('logout'), 'Đăng xuất');
     out.addEventListener('click', function () {
       VG.api('POST', '/auth/logout').catch(function () {}).then(function () { VG.signOut(); VG.go('/login'); });
     });
@@ -84,6 +73,19 @@
       h('span', { class: 't' }, h('b', null, w.name), h('span', { class: 'lbl' }, sub)),
       h('span', { class: 'amt' + (w.balance < 0 ? ' out' : '') }, VG.show(w.balance, { symbol: false })));
   }
+  // Thẻ ví kiểu thẻ ngân hàng: nền chuyển sắc theo màu ví
+  function walletCard(w) {
+    var credit = w.type === 'credit';
+    var el = h('a', { href: '#/wallets/' + w.id, class: 'wcard' },
+      h('div', { class: 'row-between' }, h('span', { class: 'wcard-ic', 'aria-hidden': 'true' }, TYPE_ICON[w.type]), h('span', { class: 'wcard-type' }, TYPE_LABEL[w.type])),
+      h('span', { class: 'wcard-name' }, w.name),
+      h('b', { class: 'wcard-bal' }, VG.show(w.balance)),
+      credit && w.credit_limit ? h('span', { class: 'wcard-sub' }, 'Hạn mức ' + VG.show(w.credit_limit, { symbol: false }) + (w.due_day ? ' · hạn ngày ' + w.due_day : ''))
+        : h('span', { class: 'wcard-sub' }, w.exclude_from_total ? 'Không tính vào tổng' : '\u00a0'));
+    var c = /^#[0-9a-fA-F]{6}$/.test(w.color || '') ? w.color : '#0B8F72';
+    el.style.background = 'linear-gradient(135deg, ' + c + ' 0%, ' + c + 'cc 60%, ' + c + '99 100%)';
+    return el;
+  }
 
   VG.screens.wallets = function () {
     var c = shell('/me');
@@ -95,7 +97,10 @@
       body.textContent = '';
       var active = d.wallets.filter(function (w) { return !w.archived; });
       var archived = d.wallets.filter(function (w) { return w.archived; });
-      body.appendChild(h('div', { class: 'card' }, h('span', { class: 'lbl' }, 'Tổng tài sản ròng'), h('span', { class: 'big' }, VG.show(d.total))));
+      var assets = 0, debt = 0;
+      active.forEach(function (w) { if (w.exclude_from_total) return; if (w.balance >= 0) assets += w.balance; else debt -= w.balance; });
+      body.appendChild(h('div', { class: 'card hero' }, h('span', { class: 'lbl' }, 'Tổng tài sản ròng · ' + active.length + ' ví'), h('span', { class: 'big' }, VG.show(d.total)),
+        h('div', { class: 'hero-pills' }, h('span', null, 'Có ' + VG.show(assets, { symbol: false })), debt ? h('span', null, 'Nợ thẻ ' + VG.show(debt, { symbol: false })) : null)));
       // Sổ nợ (F16): tổng còn lại hai chiều
       var debtBox = h('a', { href: '#/debts', class: 'plain' });
       body.appendChild(debtBox);
@@ -107,8 +112,8 @@
           dd.totals.overdue ? h('span', { class: 'tag danger' }, dd.totals.overdue + ' khoản quá hạn') : null,
           h('span', { class: 'small' }, 'Mở sổ nợ ›')));
       }).catch(function () {});
-      if (!active.length) body.appendChild(h('div', { class: 'card empty' }, h('p', { class: 'muted' }, 'Chưa có ví. Thêm ví đầu tiên để bắt đầu.')));
-      else body.appendChild(h('div', { class: 'card tight' }, active.map(walletRow)));
+      if (!active.length) body.appendChild(VG.empty('👛', 'Chưa có ví', 'Thêm ví đầu tiên (tiền mặt, ngân hàng, ví điện tử…) để bắt đầu.'));
+      else body.appendChild(h('div', { class: 'wgrid' }, active.map(walletCard)));
       if (archived.length) {
         body.appendChild(h('a', { href: showArchived ? '#/wallets' : '#/wallets?archived=1', class: 'small center-text' },
           showArchived ? 'Ẩn danh sách ví đã ẩn' : 'Xem ' + archived.length + ' ví đã ẩn'));

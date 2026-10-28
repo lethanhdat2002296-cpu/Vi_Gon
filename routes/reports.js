@@ -38,15 +38,31 @@ summary.get('/', async (req, res, next) => {
     if (!MONTH_RE.test(month)) return res.status(400).json({ error: 'Tháng không hợp lệ (YYYY-MM)' });
     if (month > thisMonth) return res.status(400).json({ error: 'Chưa tới tháng này' });
 
-    const [wallets, ie, recent] = await Promise.all([
+    const today = nowInTimezone();
+    // Dự phòng khi cron chưa chạy (chưa đặt CRON_SECRET, cron trễ): mở app là ghi định kỳ đến hạn của sổ này.
+    // Chạy TRƯỚC để số dư, thu chi bên dưới đã gồm khoản vừa ghi.
+    await require('../services/recurring').processDueRules(today.date, { bookId: req.bookId });
+
+    // Chi 7 ngày gần nhất (gồm hôm nay) cho cột nhỏ ở thẻ số dư
+    const from7 = addDays(today.date, -6);
+    const f7 = buildFilter(req.bookId, { from: from7, to: today.date, kind: 'expense' }, { forReport: true });
+    const plan = planningRoutes();
+    // Các truy vấn độc lập chạy song song (mỗi lượt khứ hồi tới Neon mất vài chục ms)
+    const [wallets, ie, recent, budgetList, rec, bankPending, debts, r7] = await Promise.all([
       balance.walletsWithBalance(req.bookId),
       incomeExpense(req.bookId, monthBounds(month)),
-      db.query(`${SELECT_TX} WHERE t.book_id = $1 AND t.deleted_at IS NULL ORDER BY t.occurred_at DESC, t.id DESC LIMIT 5`, [req.bookId])
+      db.query(`${SELECT_TX} WHERE t.book_id = $1 AND t.deleted_at IS NULL ORDER BY t.occurred_at DESC, t.id DESC LIMIT 5`, [req.bookId]),
+      plan.budgetsStatus(req.bookId, month),
+      plan.rulesOverview(req.bookId),
+      db.query(`SELECT COUNT(*)::int AS n FROM transactions WHERE book_id = $1 AND status = 'pending' AND deleted_at IS NULL`, [req.bookId]),
+      require('../services/debts').totals(req.bookId, today.date),
+      db.query(
+        `SELECT to_char(t.occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS day, SUM(t.amount)::text AS amount
+         FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE ${f7.where.join(' AND ')} GROUP BY 1`, f7.vals)
     ]);
 
-    // Thẻ cảnh báo. Ngân sách, giao dịch tự động, định kỳ sẽ thêm ở giai đoạn 2–3.
+    // Thẻ cảnh báo
     const alerts = [];
-    const today = nowInTimezone();
     const day = Number(today.date.slice(8));
     for (const w of wallets) {
       const bal = Number(w.balance);
@@ -60,32 +76,18 @@ summary.get('/', async (req, res, next) => {
         }
       }
     }
-
-    // Ngân sách sắp vượt / đã vượt (tháng đang xem) + định kỳ chờ xác nhận + sắp tới 7 ngày
-    const plan = planningRoutes();
-    // Dự phòng khi cron chưa chạy (chưa đặt CRON_SECRET, cron trễ): mở app là ghi định kỳ đến hạn của sổ này
-    await require('../services/recurring').processDueRules(nowInTimezone().date, { bookId: req.bookId });
-    const [budgetList, rec] = await Promise.all([plan.budgetsStatus(req.bookId, month), plan.rulesOverview(req.bookId)]);
     for (const b of budgetList) {
       if (b.level === 'over') alerts.push({ kind: 'budget_over', budget_id: b.id, text: `Đã vượt ngân sách ${b.name} ${(b.spent - b.limit).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')} ₫` });
       else if (b.level === 'warn') alerts.push({ kind: 'budget_warn', budget_id: b.id, text: `Ngân sách ${b.name} đã dùng ${b.percent}%` });
     }
     if (rec.pending.length) alerts.push({ kind: 'recurring_pending', text: `${rec.pending.length} khoản định kỳ chờ xác nhận` });
-    const bankPending = await db.query(`SELECT COUNT(*)::int AS n FROM transactions WHERE book_id = $1 AND status = 'pending' AND deleted_at IS NULL`, [req.bookId]);
     if (bankPending.rows[0].n) alerts.unshift({ kind: 'bank_pending', count: bankPending.rows[0].n, text: `${bankPending.rows[0].n} giao dịch ngân hàng chờ xác nhận` });
+    if (debts.overdue) alerts.push({ kind: 'debt_overdue', text: `${debts.overdue} khoản nợ quá hạn` });
 
-    const debts = await require('../services/debts').totals(req.bookId, today.date);
-    // Chi 7 ngày gần nhất (gồm hôm nay) cho cột nhỏ ở thẻ số dư
-    const from7 = addDays(today.date, -6);
-    const f7 = buildFilter(req.bookId, { from: from7, to: today.date, kind: 'expense' }, { forReport: true });
-    const r7 = await db.query(
-      `SELECT to_char(t.occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS day, SUM(t.amount)::text AS amount
-       FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE ${f7.where.join(' AND ')} GROUP BY 1`, f7.vals);
     const byDay = {};
     r7.rows.forEach(x => { byDay[x.day] = n(x.amount); });
     const last7 = [];
-    for (let i = 0; i < 7; i++) { const day = addDays(from7, i); last7.push({ date: day, expense: byDay[day] || 0 }); }
-    if (debts.overdue) alerts.push({ kind: 'debt_overdue', text: `${debts.overdue} khoản nợ quá hạn` });
+    for (let i = 0; i < 7; i++) { const d = addDays(from7, i); last7.push({ date: d, expense: byDay[d] || 0 }); }
 
     res.json({
       book: { id: req.bookId, kind: req.bookKind, role: req.bookRole },
