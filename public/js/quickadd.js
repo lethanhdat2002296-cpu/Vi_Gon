@@ -83,6 +83,10 @@
         if (m !== s.mode) { s.mode = m; if (!editing || m !== tx.kind) s.categoryId = null; else s.categoryId = tx.category_id; drawBody(); drawAmount(); }
       });
     var head = h('div', { class: 'qa-head' }, h('div', { class: 'grow' }, segEl),
+      editing && !isTransferEdit && VG.ruleForm ? h('button', { type: 'button', class: 'btn link', title: 'Tạo giao dịch định kỳ từ khoản này', onclick: function () {
+        VG.closeSheet();
+        VG.ruleForm(null, { kind: tx.kind, amount: tx.amount, category_id: tx.category_id, wallet_id: tx.wallet_id, note: tx.note });
+      } }, '↻ Lặp lại') : null,
       editing ? h('button', { type: 'button', class: 'btn link danger', onclick: function () { VG.closeSheet(); VG.deleteTx(tx); } }, 'Xoá') : null);
 
     // ---- Số tiền ----

@@ -28,13 +28,6 @@
   VG.loading = loading;
   VG.fail = fail;
 
-  VG.screens.plan = function () {
-    var c = shell('/plan');
-    c.appendChild(VG.topbar('Kế hoạch'));
-    c.appendChild(h('div', { class: 'card empty' }, h('b', null, 'Ngân sách · Mục tiêu · Định kỳ'),
-      h('p', { class: 'muted small' }, 'Phần này có ở giai đoạn 2, sau khi xong bản dùng thử.')));
-  };
-
   // ============ TÔI ============
   VG.screens.me = function () {
     var u = VG.state.user;

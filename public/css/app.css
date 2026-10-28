@@ -257,7 +257,7 @@ button.icon-btn { border: 0; cursor: pointer; font-family: inherit; }
 .month-card { gap: 12px; touch-action: pan-y; user-select: none; }
 .triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .triple > div { display: flex; flex-direction: column; min-width: 0; }
-.triple b { font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.triple b { font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .search-row { display: flex; gap: 8px; align-items: center; }
 .search { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 12px; font: inherit; color: var(--ink); }
 .search:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
@@ -313,3 +313,29 @@ button.icon-btn { border: 0; cursor: pointer; font-family: inherit; }
 .btn.danger-btn { background: var(--expense); color: #fff; }
 .err-list { margin: 8px 0 0; padding-left: 18px; color: var(--expense); display: flex; flex-direction: column; gap: 2px; }
 .card details { border-top: 1px solid var(--line); padding-top: 10px; }
+
+/* ============ Bổ sung Bước 6 ============ */
+.btn.sm { width: auto; display: inline-block; padding: 8px 14px; font-size: 14px; border-radius: 10px; }
+.btn.sm.ghost { background: var(--surface-2); color: var(--ink); }
+.plain-btn { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.plan-card { text-align: left; width: 100%; font: inherit; color: inherit; cursor: pointer; }
+.plan-card .name { font-weight: 500; }
+.prog { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.prog i { display: block; height: 100%; border-radius: 99px; background: var(--income); }
+.prog i.w { background: var(--warn); }
+.prog i.b { background: var(--expense); }
+.warn-text { color: var(--warn); }
+.chip.ok { background: var(--ok-soft); border-color: transparent; color: var(--income); font-weight: 600; cursor: default; }
+.chip.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); font-weight: 600; cursor: default; }
+.chip.bad { background: var(--danger-soft); border-color: transparent; color: var(--expense); font-weight: 600; cursor: default; }
+.goal-row { display: flex; gap: 14px; align-items: center; }
+.ring { width: 84px; height: 84px; flex: none; }
+.ring-bg { stroke: var(--surface-2); }
+.ring-fg { stroke: var(--accent); }
+.ring-txt { font-size: 20px; font-weight: 700; fill: var(--ink); }
+.kv { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.kv li { display: flex; justify-content: space-between; gap: 8px; }
+.kv li > :last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx.dimmed { opacity: 0.55; }
+.tx .btn.sm { padding: 6px 10px; }
+.upcoming { gap: 6px; }

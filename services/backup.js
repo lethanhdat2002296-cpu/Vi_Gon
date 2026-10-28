@@ -20,10 +20,13 @@ function fold(s) {
 }
 
 async function exportBook(bookId) {
-  const [w, c, t] = await Promise.all([
+  const [w, c, t, b, g, r] = await Promise.all([
     db.query('SELECT * FROM wallets WHERE book_id = $1 ORDER BY sort_order, id', [bookId]),
     db.query('SELECT * FROM categories WHERE book_id = $1 ORDER BY (parent_id IS NOT NULL), kind, sort_order, id', [bookId]),
-    db.query('SELECT * FROM transactions WHERE book_id = $1 AND deleted_at IS NULL ORDER BY occurred_at, id', [bookId])
+    db.query('SELECT * FROM transactions WHERE book_id = $1 AND deleted_at IS NULL ORDER BY occurred_at, id', [bookId]),
+    db.query('SELECT * FROM budgets WHERE book_id = $1 ORDER BY id', [bookId]),
+    db.query('SELECT * FROM goals WHERE book_id = $1 ORDER BY id', [bookId]),
+    db.query('SELECT *, anchor_date::text AS anchor_s, end_date::text AS end_s FROM recurring_rules WHERE book_id = $1 ORDER BY id', [bookId])
   ]);
   return {
     format: FORMAT,
@@ -43,6 +46,16 @@ async function exportBook(bookId) {
       wallet_ref: String(x.wallet_id), category_ref: x.category_id === null ? null : String(x.category_id),
       kind: x.kind, amount: Number(x.amount), occurred_at: new Date(x.occurred_at).toISOString(),
       note: x.note, source: x.source, transfer_ref: x.transfer_group || null
+    })),
+    // Kế hoạch (từ bước 6) — bản sao lưu cũ không có các mục này vẫn nhập được
+    budgets: b.rows.map(x => ({ category_ref: x.category_id === null ? null : String(x.category_id), amount: Number(x.amount), rollover: x.rollover, start_month: x.start_month })),
+    goals: g.rows.map(x => ({
+      name: x.name, target_amount: Number(x.target_amount), deadline_month: x.deadline_month, wallet_ref: String(x.wallet_id),
+      start_month: x.start_month, start_amount: Number(x.start_amount), archived: !!x.archived_at
+    })),
+    recurring: r.rows.map(x => ({
+      kind: x.kind, amount: Number(x.amount), wallet_ref: String(x.wallet_id), category_ref: x.category_id === null ? null : String(x.category_id),
+      note: x.note, frequency: x.frequency, anchor_date: x.anchor_s, end_date: x.end_s || null, mode: x.mode, active: x.active
     }))
   };
 }
@@ -101,6 +114,25 @@ function validateBackup(data) {
       g.push(t);
       groups.set(t.transfer_ref, g);
     }
+  });
+  const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+  const DAY = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(new Date(`${d}T12:00:00Z`)) && new Date(`${d}T12:00:00Z`).toISOString().slice(0, 10) === d;
+  for (const k of ['budgets', 'goals', 'recurring']) {
+    if (data[k] !== undefined && (!Array.isArray(data[k]) || data[k].length > 1000)) throw bad(`Mục ${k} không hợp lệ`);
+  }
+  (data.budgets || []).forEach((x, i) => {
+    if (!x || !isInt(x.amount, 1, MAX_VND) || !MONTH.test(String(x.start_month))) throw bad(`Ngân sách #${i + 1} không hợp lệ`);
+    if (x.category_ref !== null && x.category_ref !== undefined && (!cRefs.has(x.category_ref) || cRefs.get(x.category_ref).kind !== 'expense')) throw bad(`Ngân sách #${i + 1}: danh mục không hợp lệ`);
+  });
+  (data.goals || []).forEach((x, i) => {
+    if (!x || !str(x.name, 60) || !isInt(x.target_amount, 1, MAX_VND) || !MONTH.test(String(x.deadline_month)) || !MONTH.test(String(x.start_month)) ||
+      !wRefs.has(x.wallet_ref) || !isInt(x.start_amount || 0, 0, MAX_VND)) throw bad(`Mục tiêu #${i + 1} không hợp lệ`);
+  });
+  (data.recurring || []).forEach((x, i) => {
+    if (!x || !['expense', 'income'].includes(x.kind) || !isInt(x.amount, 1, MAX_VND) || !wRefs.has(x.wallet_ref) ||
+      !['weekly', 'monthly', 'yearly'].includes(x.frequency) || !DAY(x.anchor_date) || (x.end_date && !DAY(x.end_date)) ||
+      !['auto', 'confirm'].includes(x.mode) || (typeof x.note !== 'string' && x.note !== undefined) || (x.note && x.note.length > 200)) throw bad(`Định kỳ #${i + 1} không hợp lệ`);
+    if (x.category_ref && (!cRefs.has(x.category_ref) || cRefs.get(x.category_ref).kind !== x.kind)) throw bad(`Định kỳ #${i + 1}: danh mục không hợp lệ`);
   });
   // Mỗi khoản chuyển tiền phải đủ cặp: 1 chi + 1 thu cùng số tiền
   for (const [ref, g] of groups) {
@@ -190,7 +222,42 @@ async function importBackup(bookId, userId, data) {
       };
     });
     await insertTransactions(client, bookId, userId, rows);
-    return { wallets: data.wallets.length, categories_created: cats.created, transactions: rows.length };
+
+    // Ngân sách: danh mục đã có ngân sách thì giữ ngân sách đang có
+    let budgets = 0;
+    for (const x of data.budgets || []) {
+      const r = await client.query(
+        `INSERT INTO budgets (book_id, category_id, amount, rollover, start_month) VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (book_id, COALESCE(category_id, 0)) DO NOTHING RETURNING id`,
+        [bookId, x.category_ref ? cats.map.get(x.category_ref) : null, x.amount, !!x.rollover, x.start_month]
+      );
+      budgets += r.rowCount;
+    }
+    for (const x of data.goals || []) {
+      await client.query(
+        `INSERT INTO goals (book_id, name, target_amount, deadline_month, wallet_id, start_month, start_amount, archived_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [bookId, x.name.trim(), x.target_amount, x.deadline_month, walletMap.get(x.wallet_ref), x.start_month, x.start_amount || 0, x.archived ? new Date() : null]
+      );
+    }
+    // Định kỳ: lần tới tính từ hôm nay (không ghi bù quá khứ khi khôi phục)
+    const { nowInTimezone } = require('../utils/time');
+    const { nextAfter } = require('./planning');
+    const today = nowInTimezone().date;
+    const yesterday = new Date(`${today}T12:00:00Z`); yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    for (const x of data.recurring || []) {
+      const next = x.anchor_date >= today ? x.anchor_date : nextAfter(x.anchor_date, x.frequency, yesterday.toISOString().slice(0, 10));
+      await client.query(
+        `INSERT INTO recurring_rules (book_id, user_id, kind, amount, wallet_id, category_id, note, frequency, anchor_date, next_date, end_date, mode, active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        [bookId, userId, x.kind, x.amount, walletMap.get(x.wallet_ref), x.category_ref ? cats.map.get(x.category_ref) : null,
+          x.note || '', x.frequency, x.anchor_date, next, x.end_date || null, x.mode, x.active !== false]
+      );
+    }
+    return {
+      wallets: data.wallets.length, categories_created: cats.created, transactions: rows.length,
+      budgets, goals: (data.goals || []).length, recurring: (data.recurring || []).length
+    };
   });
 }
 

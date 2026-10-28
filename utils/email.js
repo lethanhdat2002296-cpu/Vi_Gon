@@ -89,4 +89,18 @@ async function sendResetPassword(toEmail, token, fullName) {
   return send(toEmail, '[Ví Gọn] Đặt lại mật khẩu', html, `Link: ${link}`);
 }
 
-module.exports = { sendVerifyEmail, sendResetPassword, escapeHtml };
+// ============ NHẮC NGÂN SÁCH 80% / 100% ============
+function vnd(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' ₫'; }
+async function sendBudgetAlert(toEmail, fullName, b) {
+  const over = b.spent > b.limit;
+  const title = over ? `Đã vượt ngân sách ${b.name}` : `Ngân sách ${b.name} đã dùng ${b.percent}%`;
+  const link = `${config.APP_URL}/#/plan`;
+  const html = layout(title, `
+    <p>Tháng ${escapeHtml(b.month.slice(5))}/${escapeHtml(b.month.slice(0, 4))}: đã chi <strong>${vnd(b.spent)}</strong> / ${vnd(b.limit)}.</p>
+    ${over ? `<p>Vượt <strong>${vnd(b.spent - b.limit)}</strong>.</p>` : (b.per_day !== null ? `<p>Nên tiêu tối đa <strong>${vnd(b.per_day)}</strong>/ngày trong ${b.days_left} ngày còn lại.</p>` : '')}
+    ${button(link, 'Xem kế hoạch')}
+  `).replace('Nếu bạn không yêu cầu, vui lòng bỏ qua email này.', 'Tắt nhắc bằng cách xoá ngân sách trong mục Kế hoạch.');
+  return send(toEmail, `[Ví Gọn] ${title}`, html, `${title}: ${vnd(b.spent)} / ${vnd(b.limit)}`);
+}
+
+module.exports = { sendVerifyEmail, sendResetPassword, sendBudgetAlert, escapeHtml };

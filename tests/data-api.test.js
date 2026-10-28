@@ -54,6 +54,11 @@ describe.skipIf(!TEST_DB)('Bảo mật và dữ liệu F08 (Postgres thật)', (
     await call('DELETE', `/api/transactions/${gone.id}`, null, t);
     await add({ amount: 10_000, wallet_id: old.id });
     await call('POST', `/api/wallets/${old.id}/archive`, {}, t);
+    // Kế hoạch
+    await call('POST', '/api/budgets', { category_id: cat('Ăn uống'), amount: 4_000_000, rollover: true }, t);
+    await call('POST', '/api/budgets', { amount: 9_000_000 }, t);
+    await call('POST', '/api/goals', { name: 'Mua xe', target_amount: 50_000_000, deadline_month: time.addMonths(thisMonth, 10), wallet_id: bank.id }, t);
+    await call('POST', '/api/recurring', { kind: 'expense', amount: 3_500_000, wallet_id: bank.id, category_id: cat('Thuê nhà'), note: 'Tiền nhà', frequency: 'monthly', start_date: time.addDays(today, 2), mode: 'confirm' }, t);
   }
   // "Dấu vân tay" để so 2 tài khoản: số dư từng ví (theo tên) + thu/chi từng tháng + chi theo danh mục
   async function fingerprint(t) {
@@ -67,7 +72,10 @@ describe.skipIf(!TEST_DB)('Bảo mật và dữ liệu F08 (Postgres thật)', (
       byCat.push([m(k), b.total, b.categories.map(c => [c.name, c.amount])]);
     }
     const total = (await call('GET', '/api/summary', null, t)).body.total_balance;
-    return { w, monthly, byCat, total };
+    const budgets = (await call('GET', '/api/budgets/status', null, t)).body.budgets.map(b => [b.name, b.limit, b.spent, b.rollover]);
+    const goals = (await call('GET', '/api/goals', null, t)).body.goals.map(g => [g.name, g.target_amount, g.saved, g.deadline_month, g.wallet_name, g.status]);
+    const rules = (await call('GET', '/api/recurring', null, t)).body.rules.map(r => [r.note, r.amount, r.schedule, r.mode, r.next_date, r.category_name, r.wallet_name]);
+    return { w, monthly, byCat, total, budgets, goals, rules };
   }
 
   describe('xuất / nhập JSON', () => {
@@ -84,7 +92,7 @@ describe.skipIf(!TEST_DB)('Bảo mật và dữ liệu F08 (Postgres thật)', (
       const b = await user();
       const r = await call('POST', '/api/data/import.json', { backup }, b.t);
       expect(r.status).toBe(200);
-      expect(r.body).toMatchObject({ wallets: 4, transactions: backup.transactions.length });
+      expect(r.body).toMatchObject({ wallets: 4, transactions: backup.transactions.length, budgets: 2, goals: 1, recurring: 1 });
       expect(await fingerprint(b.t)).toEqual(await fingerprint(a.t));
       // Danh mục mặc định được ghép, không nhân đôi; mục con tự tạo được tạo
       const cats = (await call('GET', '/api/categories', null, b.t)).body.categories;

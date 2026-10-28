@@ -15,6 +15,8 @@ const onboardingRoutes = require('./routes/onboarding');
 const { summary: summaryRoutes, reports: reportRoutes } = require('./routes/reports');
 const exportRoutes = require('./routes/export');
 const dataRoutes = require('./routes/data');
+const planningRoutes = require('./routes/planning');
+const cronRoutes = require('./routes/cron');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
@@ -60,6 +62,10 @@ app.use('/api/summary', summaryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/export.xlsx', exportRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/budgets', planningRoutes.budgets);
+app.use('/api/goals', planningRoutes.goals);
+app.use('/api/recurring', planningRoutes.rules);
+app.use('/api/cron', cronRoutes);          // job định kỳ (bảo vệ bằng CRON_SECRET)
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)
 app.get('/api/health', async (req, res) => {

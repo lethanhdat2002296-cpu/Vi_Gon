@@ -236,6 +236,24 @@ router.delete('/:id', canWrite, (req, res, next) => setDeleted(req, res, next, t
 router.post('/:id/restore', canWrite, (req, res, next) => setDeleted(req, res, next, false));
 
 // ============ CHUYỂN GIỮA VÍ ============
+// Ghi 1 cặp bút toán chuyển tiền trong 1 transaction SQL. Dùng chung cho "Góp vào mục tiêu".
+async function insertTransfer(bookId, userId, fromWalletId, toWalletId, amount, at, note) {
+  const group = crypto.randomUUID();
+  const ids = await db.withTransaction(async (client) => {
+    const out = [];
+    for (const [walletId, kind] of [[fromWalletId, 'expense'], [toWalletId, 'income']]) {
+      const r = await client.query(
+        `INSERT INTO transactions (book_id, user_id, wallet_id, kind, amount, occurred_at, note, source, transfer_group)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'transfer', $8) RETURNING id`,
+        [bookId, userId, walletId, kind, amount, at, note, group]
+      );
+      out.push(Number(r.rows[0].id));
+    }
+    return out;
+  });
+  return { group, ids };
+}
+
 // 2 bút toán cùng transfer_group (chi ở ví nguồn, thu ở ví đích), ghi trong 1 transaction SQL.
 const transfers = express.Router();
 transfers.use(authRequired, bookRequired);
@@ -255,20 +273,8 @@ transfers.post('/', canWrite, async (req, res, next) => {
     const when = resolveOccurredAt(b);
     if (when.error) return res.status(400).json({ error: when.error });
 
-    const group = crypto.randomUUID();
     const amount = parseVnd(b.amount);
-    const ids = await db.withTransaction(async (client) => {
-      const out = [];
-      for (const [walletId, kind] of [[from.id, 'expense'], [to.id, 'income']]) {
-        const r = await client.query(
-          `INSERT INTO transactions (book_id, user_id, wallet_id, kind, amount, occurred_at, note, source, transfer_group)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 'transfer', $8) RETURNING id`,
-          [req.bookId, req.user.id, walletId, kind, amount, when.at, note, group]
-        );
-        out.push(Number(r.rows[0].id));
-      }
-      return out;
-    });
+    const { group, ids } = await insertTransfer(req.bookId, req.user.id, from.id, to.id, amount, when.at, note);
     res.status(201).json({
       transfer_group: group,
       transactions: [publicTx(await getTx(req.bookId, ids[0])), publicTx(await getTx(req.bookId, ids[1]))],
@@ -281,3 +287,4 @@ module.exports = router;
 module.exports.transfers = transfers;
 module.exports.SELECT_TX = SELECT_TX;
 module.exports.publicTx = publicTx;
+module.exports.helpers = { insertTransfer, usableWallet, usableCategory, getTx, overdraftWarning };
