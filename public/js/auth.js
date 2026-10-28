@@ -3,11 +3,16 @@
   'use strict';
   var h = VG.h;
 
-  function header(title, sub) {
-    return h('div', { class: 'stack' },
-      h('div', { class: 'brand' }, 'Ví Gọn'),
-      h('h1', null, title),
-      sub ? h('p', { class: 'muted' }, sub) : null);
+  // Khung màn tài khoản: đầu trang chuyển sắc + thẻ nội dung bo tròn
+  function authScreen(title, sub) {
+    var kids = Array.prototype.slice.call(arguments, 2);
+    return h('div', { class: 'screen auth' },
+      h('div', { class: 'auth-hero' },
+        h('div', { class: 'auth-logo', 'aria-hidden': 'true' }, '₫'),
+        h('div', { class: 'auth-brand' }, 'Ví Gọn'),
+        h('div', { class: 'auth-slogan' }, 'Tiền vào, tiền ra — rõ trong 10 giây'),
+        h('div', { class: 'auth-tiles', 'aria-hidden': 'true' }, h('b', null, '🍜'), h('b', null, '🛵'), h('b', null, '💼'), h('b', null, '🏠'))),
+      h('div', { class: 'auth-card' }, h('h1', null, title), sub ? h('p', { class: 'muted' }, sub) : null, kids));
   }
 
   function input(attrs) { return h('input', attrs); }
@@ -41,7 +46,7 @@
         afterSignIn(d, keep);
       });
     });
-    VG.render(h('div', { class: 'screen' }, header('Đăng nhập', 'Chào mừng bạn quay lại.'), form,
+    VG.render(authScreen('Đăng nhập', 'Chào mừng bạn quay lại.', form,
       h('div', { class: 'bottom' }, h('p', { class: 'muted small' }, 'Chưa có tài khoản? ', h('a', { href: '#/register' }, 'Đăng ký')))));
     if (email.value) form.password.focus();
   };
@@ -60,7 +65,7 @@
         full_name: form.full_name.value, email: form.email.value, password: form.password.value
       }).then(afterSignIn);
     });
-    VG.render(h('div', { class: 'screen' }, header('Tạo tài khoản', 'Ghi thu chi nhanh, biết tiền mình đi đâu.'), form,
+    VG.render(authScreen('Tạo tài khoản', 'Ghi thu chi nhanh, biết tiền mình đi đâu.', form,
       h('div', { class: 'bottom' }, h('p', { class: 'muted small' }, 'Đã có tài khoản? ', h('a', { href: '#/login' }, 'Đăng nhập')))));
   };
 
@@ -73,7 +78,7 @@
     VG.onSubmit(form, btn, msg, function () {
       return VG.api('POST', '/auth/forgot', { email: form.email.value }).then(function (d) { msg.show(d.message, 'ok'); });
     });
-    VG.render(h('div', { class: 'screen' }, header('Quên mật khẩu', 'Nhập email, chúng tôi gửi link đặt mật khẩu mới.'), form,
+    VG.render(authScreen('Quên mật khẩu', 'Nhập email, chúng tôi gửi link đặt mật khẩu mới.', form,
       h('div', { class: 'bottom' }, h('a', { href: '#/login', class: 'small' }, '← Quay lại đăng nhập'))));
   };
 
@@ -88,13 +93,13 @@
       if (form.password.value.length < 8) throw new Error('Mật khẩu tối thiểu 8 ký tự');
       return VG.api('POST', '/auth/reset', { token: token, password: form.password.value }).then(afterSignIn);
     });
-    VG.render(h('div', { class: 'screen' }, header('Đặt mật khẩu mới', 'Các máy khác đang đăng nhập sẽ bị đăng xuất.'), form));
+    VG.render(authScreen('Đặt mật khẩu mới', 'Các máy khác đang đăng nhập sẽ bị đăng xuất.', form));
   };
 
   VG.screens.verify = function () {
     var token = VG.queryParam('token');
     var box = h('div', { class: 'msg info' }, 'Đang xác minh email…');
-    VG.render(h('div', { class: 'screen' }, header('Xác minh email'), box,
+    VG.render(authScreen('Xác minh email', null, box,
       h('div', { class: 'bottom' }, h('a', { href: '#/', class: 'btn' }, 'Vào Ví Gọn'))));
     VG.api('POST', '/auth/verify-email', { token: token })
       .then(function () {

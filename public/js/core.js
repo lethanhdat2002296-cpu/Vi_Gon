@@ -317,8 +317,13 @@ window.VG = (function () {
   }
 
   // Ô biểu tượng tròn màu của danh mục / ví
+  // Nền nhạt cùng màu danh mục, chữ/biểu tượng màu đậm
   function badge(icon, color, fallback) {
-    return h('span', { class: 'cat', bg: color || '#9AA79F', 'aria-hidden': 'true' }, icon || (fallback || '?').charAt(0).toUpperCase());
+    var c = /^#[0-9a-fA-F]{6}$/.test(color || '') ? color : '#9AA79F';
+    var el = h('span', { class: 'cat', 'aria-hidden': 'true' }, icon || (fallback || '?').charAt(0).toUpperCase());
+    el.style.background = c + '26';
+    el.style.color = c;
+    return el;
   }
 
   function topbar(title, opts) {

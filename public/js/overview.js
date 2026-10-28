@@ -109,8 +109,12 @@
   VG.screens.home = function () {
     var u = VG.state.user;
     var c = VG.shell('/');
-    c.appendChild(h('div', { class: 'topbar' },
-      h('div', { class: 'grow' }, h('span', { class: 'lbl' }, 'Xin chào'), h('h1', null, u.full_name || 'bạn')),
+    var name = (u.full_name || '').trim();
+    var hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', hour12: false }).format(new Date())) % 24;
+    var greet = hour < 11 ? 'Chào buổi sáng,' : hour < 14 ? 'Chào buổi trưa,' : hour < 18 ? 'Chào buổi chiều,' : 'Chào buổi tối,';
+    c.appendChild(h('div', { class: 'hello' },
+      h('span', { class: 'ava', 'aria-hidden': 'true' }, (name.split(' ').pop() || 'V').charAt(0).toUpperCase()),
+      h('div', { class: 'grow' }, h('span', { class: 'lbl' }, greet), h('h1', null, name ? name.split(' ').pop() : 'bạn')),
       eyeButton()));
     var books = VG.bookSwitch();
     if (books) c.appendChild(books);
@@ -126,10 +130,37 @@
     VG.api('GET', '/summary' + q).then(function (d) {
       body.textContent = '';
       // Tổng số dư mọi ví (bấm để xem từng ví)
+      // Cột nhỏ: chi 7 ngày gần nhất (cột trắng là hôm nay)
+      var max7 = Math.max.apply(null, (d.last7 || []).map(function (x) { return x.expense; }).concat([1]));
+      var spark = h('div', { class: 'spark', 'aria-hidden': 'true' }, (d.last7 || []).map(function (x, i, arr) {
+        var bar = h('i', { class: i === arr.length - 1 ? 'now' : null });
+        bar.style.height = Math.max(10, Math.round(x.expense / max7 * 100)) + '%';
+        return bar;
+      }));
+      var week = (d.last7 || []).reduce(function (s, x) { return s + x.expense; }, 0);
       body.appendChild(h('a', { href: '#/wallets', class: 'plain' }, h('div', { class: 'card hero' },
-        h('span', { class: 'lbl' }, 'Tổng số dư'),
+        h('span', { class: 'lbl' }, 'Tổng số dư · ' + d.wallet_count + ' ví'),
         h('span', { class: 'big' }, VG.show(d.total_balance)),
-        h('span', { class: 'lbl' }, d.wallet_count + ' ví · xem từng ví ›'))));
+        spark,
+        h('div', { class: 'spark-lbl' }, h('span', null, 'Chi 7 ngày: ' + VG.show(week, { symbol: false })), h('span', null, 'Xem từng ví ›')))));
+
+      // Nút nhanh
+      if (VG.canWrite()) {
+        var QI = { out: ['M12 5v14', 'M6 13l6 6 6-6'], in: ['M12 19V5', 'M6 11l6-6 6 6'], swap: ['M4 8h13l-3-3', 'M20 16H7l3 3'],
+          scan: ['M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8', 'M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8', 'M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16', 'M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16', 'M4 12h16'] };
+        var qicon = function (k) {
+          var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
+          QI[k].forEach(function (dd) { var pth = document.createElementNS('http://www.w3.org/2000/svg', 'path'); pth.setAttribute('d', dd); s.appendChild(pth); });
+          return s;
+        };
+        var qb = function (k, cls, label, opts) {
+          return h('button', { type: 'button', onclick: function () { VG.quickAdd(opts); } }, h('span', { class: 'q ' + cls }, qicon(k)), label);
+        };
+        body.appendChild(h('div', { class: 'quick' },
+          qb('out', 'exp', 'Chi', { mode: 'expense' }), qb('in', 'inc', 'Thu', { mode: 'income' }),
+          qb('swap', 'acc', 'Chuyển', { mode: 'transfer' }), qb('scan', 'wrn', 'Quét', { mode: 'expense', scan: true })));
+      }
 
       // Thu, chi, còn lại của tháng; ‹ › hoặc vuốt ngang để đổi tháng
       function goMonth(m) { if (m) { homeMonth = m; VG.route(); } }

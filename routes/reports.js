@@ -6,7 +6,7 @@ const { authRequired } = require('../middleware/auth');
 const { bookRequired } = require('../middleware/book');
 const balance = require('../services/balance');
 const { buildFilter, monthBounds, previousPeriod } = require('../services/filters');
-const { currentMonth, addMonths, nowInTimezone } = require('../utils/time');
+const { currentMonth, addMonths, addDays, nowInTimezone } = require('../utils/time');
 const { SELECT_TX, publicTx } = require('./transactions');
 // Nạp muộn để tránh vòng require (planning → transactions → …)
 const planningRoutes = () => require('./planning');
@@ -75,10 +75,21 @@ summary.get('/', async (req, res, next) => {
     if (bankPending.rows[0].n) alerts.unshift({ kind: 'bank_pending', count: bankPending.rows[0].n, text: `${bankPending.rows[0].n} giao dịch ngân hàng chờ xác nhận` });
 
     const debts = await require('../services/debts').totals(req.bookId, today.date);
+    // Chi 7 ngày gần nhất (gồm hôm nay) cho cột nhỏ ở thẻ số dư
+    const from7 = addDays(today.date, -6);
+    const f7 = buildFilter(req.bookId, { from: from7, to: today.date, kind: 'expense' }, { forReport: true });
+    const r7 = await db.query(
+      `SELECT to_char(t.occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS day, SUM(t.amount)::text AS amount
+       FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE ${f7.where.join(' AND ')} GROUP BY 1`, f7.vals);
+    const byDay = {};
+    r7.rows.forEach(x => { byDay[x.day] = n(x.amount); });
+    const last7 = [];
+    for (let i = 0; i < 7; i++) { const day = addDays(from7, i); last7.push({ date: day, expense: byDay[day] || 0 }); }
     if (debts.overdue) alerts.push({ kind: 'debt_overdue', text: `${debts.overdue} khoản nợ quá hạn` });
 
     res.json({
       book: { id: req.bookId, kind: req.bookKind, role: req.bookRole },
+      last7,
       debts,
       upcoming: rec.upcoming.slice(0, 5),
       month,

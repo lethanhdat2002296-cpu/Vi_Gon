@@ -321,5 +321,7 @@
     drawAmount(); drawBody(); drawWallet();
     segEl.addEventListener('click', drawWallet);
     panel.appendChild(h('div', { class: 'qa' }, head, scanBox, amountEl, quick, body, meta, noteInput, suggestBox, msg, keys));
+    // Nút "Quét" ở Tổng quan: mở luôn camera / chọn ảnh
+    if (opts.scan && !editing && VG.scanReceipt) scan();
   }
 })(window.VG);

@@ -214,6 +214,9 @@ describe.skipIf(!TEST_DB)('Dùng chung F14–F16 (Postgres thật)', () => {
       expect(after.income).toBe(before.income);
       expect(after.total_balance).toBe(3_500_000);
       expect(after.debts).toMatchObject({ lent: 1_500_000, borrowed: 0 });
+      // Cột chi 7 ngày ở Tổng quan: 7 ngày, hôm nay cuối, cho mượn không tính là chi
+      expect(after.last7).toHaveLength(7);
+      expect(after.last7[6]).toEqual({ date: today, expense: 0 });
       const cat = (await call('GET', '/api/reports/by-category', null, u.t)).body;
       expect(cat.total).toBe(0);
       // Không trả quá số còn lại; sửa giao dịch nợ ở Sổ ghi chép bị chặn
