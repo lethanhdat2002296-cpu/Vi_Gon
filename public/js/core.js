@@ -10,11 +10,15 @@ window.VG = (function () {
   // book: sổ đang dùng { id, name, kind, role }; books: các sổ mình là thành viên (nạp sau /me)
   var state = { user: null, book: null, books: null };
 
+  // Ghi nhớ đăng nhập: token ở localStorage (giữ 30 ngày). Không ghi nhớ: sessionStorage (đóng trình duyệt là thoát).
   function getToken() {
-    try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; }
+    try { return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY); } catch (e) { return null; }
   }
-  function setToken(t) {
-    try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+  function setToken(t, remember) {
+    try {
+      localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY);
+      if (t) (remember === false ? sessionStorage : localStorage).setItem(TOKEN_KEY, t);
+    } catch (e) {}
   }
 
   // h('div', { class: 'x', onclick: fn, bg: '#fff' }, 'chữ', con...) → phần tử DOM
@@ -102,8 +106,8 @@ window.VG = (function () {
     else document.documentElement.removeAttribute('data-theme');
   }
 
-  function signedIn(data) {
-    setToken(data.token);
+  function signedIn(data, remember) {
+    setToken(data.token, remember);
     // Vừa đăng nhập bằng mật khẩu → không bắt nhập PIN ngay
     try { localStorage.setItem('vigon_last_active', String(Date.now())); } catch (e) {}
     state.user = data.user;
