@@ -17,7 +17,8 @@
     return h('button', { type: 'button', class: 'tx', onclick: function (ev) { if (!ev.currentTarget.swiped) VG.quickAdd({ tx: t }); } },
       neutral ? h('span', { class: 'cat neutral', 'aria-hidden': 'true' }, '⇄') : VG.badge(t.category_icon, t.category_color, txTitle(t)),
       h('span', { class: 't' }, h('b', null, txTitle(t)),
-        h('span', { class: 'lbl' }, t.source === 'bank' ? h('span', { class: 'tag' }, 'Tự động') : null, sub)),
+        h('span', { class: 'lbl' }, t.status === 'pending' ? h('span', { class: 'tag warn' }, 'Chờ xác nhận') : t.source === 'bank' ? h('span', { class: 'tag' }, 'Tự động') : null,
+          t.has_receipt ? '🧾 ' : null, sub)),
       h('span', { class: 'amt ' + (neutral ? '' : t.kind === 'income' ? 'in' : 'out') }, (t.kind === 'income' ? '+' : '−') + VG.show(t.amount, { symbol: false })));
   }
 
@@ -145,11 +146,11 @@
       body.appendChild(monthCard);
 
       // Thẻ cảnh báo
-      var ALERT_LINK = { budget_warn: '#/plan?tab=budgets', budget_over: '#/plan?tab=budgets', recurring_pending: '#/plan?tab=recurring' };
+      var ALERT_LINK = { bank_pending: '#/bank/pending', budget_warn: '#/plan?tab=budgets', budget_over: '#/plan?tab=budgets', recurring_pending: '#/plan?tab=recurring' };
       d.alerts.forEach(function (a) {
         var href = ALERT_LINK[a.kind] || '#/wallets/' + a.wallet_id;
-        var cls = a.kind === 'budget_over' ? 'msg err plain-link' : a.kind === 'recurring_pending' ? 'msg info plain-link' : 'msg warn plain-link';
-        body.appendChild(h('a', { href: href, class: cls }, h('span', null, (a.kind === 'recurring_pending' ? '🔔 ' : '⚠️ ') + a.text), h('span', { 'aria-hidden': 'true' }, '›')));
+        var cls = a.kind === 'budget_over' ? 'msg err plain-link' : (a.kind === 'recurring_pending' || a.kind === 'bank_pending') ? 'msg info plain-link' : 'msg warn plain-link';
+        body.appendChild(h('a', { href: href, class: cls }, h('span', null, (a.kind === 'recurring_pending' || a.kind === 'bank_pending' ? '🔔 ' : '⚠️ ') + a.text), h('span', { 'aria-hidden': 'true' }, '›')));
       });
       // Định kỳ sắp tới trong 7 ngày
       if (d.upcoming && d.upcoming.length) {

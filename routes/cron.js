@@ -2,6 +2,7 @@
 // FAIL-CLOSED: chưa đặt CRON_SECRET hoặc sai → 401, không chạy gì.
 //   1. Ghi giao dịch định kỳ đến hạn (không trùng khi chạy lại)
 //   2. Gửi email ngân sách chạm 80% / 100% (mỗi mốc 1 lần/tháng)
+//   3. Xoá hẳn giao dịch đã xoá quá 1 ngày (và ảnh hoá đơn của nó)
 const crypto = require('crypto');
 const express = require('express');
 const db = require('../lib/db');
@@ -59,8 +60,10 @@ router.get('/daily', async (req, res, next) => {
     const today = nowInTimezone().date;
     const rec = await recurring.processDueRules(today);
     const alerts = await budgetAlerts(currentMonth());
-    console.log('[cron daily]', today, JSON.stringify({ ...rec, alerts }));
-    res.json({ ok: true, today, recurring: rec, budget_emails: alerts });
+    // Xoá hẳn giao dịch đã xoá quá 1 ngày (hết thời gian hoàn tác) kèm ảnh hoá đơn
+    const purged = (await db.query("DELETE FROM transactions WHERE deleted_at < NOW() - INTERVAL '1 day'")).rowCount;
+    console.log('[cron daily]', today, JSON.stringify({ ...rec, alerts, purged }));
+    res.json({ ok: true, today, recurring: rec, budget_emails: alerts, purged });
   } catch (e) { next(e); }
 });
 

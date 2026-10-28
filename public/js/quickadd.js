@@ -45,7 +45,10 @@
     var catsById = {};
     data.categories.forEach(function (c) { catsById[c.id] = c; });
     // Mục con chưa có biểu tượng riêng thì dùng biểu tượng của danh mục cha
-    data.categories.forEach(function (c) { if (!c.icon && c.parent_id && catsById[c.parent_id]) c.icon = catsById[c.parent_id].icon; });
+    var withIcon = function (c) { if (!c.icon && c.parent_id && catsById[c.parent_id]) c.icon = catsById[c.parent_id].icon; };
+    data.categories.forEach(withIcon);
+    data.top_categories.expense.forEach(withIcon);
+    data.top_categories.income.forEach(withIcon);
 
     // Trạng thái bảng
     var s = {
@@ -87,7 +90,32 @@
         VG.closeSheet();
         VG.ruleForm(null, { kind: tx.kind, amount: tx.amount, category_id: tx.category_id, wallet_id: tx.wallet_id, note: tx.note });
       } }, '↻ Lặp lại') : null,
+      editing && tx.has_receipt && VG.showReceipt ? h('button', { type: 'button', class: 'btn link', onclick: function () { VG.showReceipt(tx.id); } }, '🧾 Ảnh') : null,
+      !editing && VG.scanReceipt ? h('button', { type: 'button', class: 'btn link', title: 'Chụp hoặc chọn ảnh hoá đơn', onclick: scan }, '📷 Quét') : null,
       editing ? h('button', { type: 'button', class: 'btn link danger', onclick: function () { VG.closeSheet(); VG.deleteTx(tx); } }, 'Xoá') : null);
+
+    // ---- Quét hoá đơn (F13): điền sẵn số tiền, ngày, cửa hàng; luôn để người dùng xem lại ----
+    var scanBox = h('div', { class: 'scan-box hidden' });
+    var attach = null;
+    function scan() {
+      VG.scanReceipt(function (r) {
+        scanBox.textContent = '';
+        if (r.amount) s.digits = String(r.amount);
+        if (r.date && r.date <= VG.today()) { s.date = r.date; dateInput.value = r.date; dateLabel.textContent = VG.shortDate(r.date); }
+        if (r.store && !s.note) { s.note = r.store; noteInput.value = r.store; }
+        if (s.mode !== 'expense') { s.mode = 'expense'; }
+        drawAmount(); drawBody();
+        attach = r.image ? VG.toggle('Đính kèm ảnh hoá đơn', true) : null;
+        var thumb = r.image ? h('img', { src: 'data:image/jpeg;base64,' + r.image, alt: 'Ảnh hoá đơn', class: 'scan-thumb' }) : null;
+        scanBox.appendChild(h('div', { class: 'msg ' + (r.amount ? 'info' : 'warn') },
+          r.amount ? 'Đã đọc: ' + VG.fmt(r.amount) + (r.date ? ' · ' + VG.shortDate(r.date) : '') + (r.store ? ' · ' + r.store : '') + '. Xem lại trước khi lưu.' : 'Không đọc được tổng tiền, hãy gõ số tiền.'));
+        if (thumb) scanBox.appendChild(h('div', { class: 'row-between' }, thumb, attach));
+        scanBox.className = 'scan-box';
+      }, function (status) {
+        scanBox.textContent = '';
+        if (status) { scanBox.appendChild(h('div', { class: 'msg info' }, status)); scanBox.className = 'scan-box'; }
+      });
+    }
 
     // ---- Số tiền ----
     var amountEl = h('div', { class: 'qa-amount', 'aria-live': 'polite' });
@@ -275,6 +303,11 @@
       }
       saveBtn.disabled = true;
       req.then(function (d) {
+        // Đính ảnh hoá đơn vừa quét vào giao dịch mới
+        if (attach && attach.input.checked && d.transaction && VG.uploadReceipt) {
+          var img = scanBox.querySelector('.scan-thumb');
+          if (img) VG.uploadReceipt(d.transaction.id, img.src.split(',')[1]).catch(function (e) { VG.toast('Đã lưu giao dịch nhưng chưa đính được ảnh: ' + e.message, { kind: 'warn' }); });
+        }
         VG.closeSheet();
         refresh();
         var label = s.mode === 'transfer' ? 'chuyển tiền' : (catsById[s.categoryId] ? catsById[s.categoryId].name : '');
@@ -287,6 +320,6 @@
 
     drawAmount(); drawBody(); drawWallet();
     segEl.addEventListener('click', drawWallet);
-    panel.appendChild(h('div', { class: 'qa' }, head, amountEl, quick, body, meta, noteInput, suggestBox, msg, keys));
+    panel.appendChild(h('div', { class: 'qa' }, head, scanBox, amountEl, quick, body, meta, noteInput, suggestBox, msg, keys));
   }
 })(window.VG);

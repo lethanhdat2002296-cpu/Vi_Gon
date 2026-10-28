@@ -17,6 +17,8 @@ const exportRoutes = require('./routes/export');
 const dataRoutes = require('./routes/data');
 const planningRoutes = require('./routes/planning');
 const cronRoutes = require('./routes/cron');
+const bankRoutes = require('./routes/bank');
+const receiptRoutes = require('./routes/receipts');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
@@ -27,9 +29,10 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-XSS-Protection', '0');
-  // CSP: chỉ cho tài nguyên cùng origin + Google Fonts (Be Vietnam Pro)
+  // CSP: cùng origin + Google Fonts (Be Vietnam Pro) + jsDelivr cho Tesseract quét hoá đơn (script, worker, wasm, dữ liệu chữ)
   res.setHeader('Content-Security-Policy',
-    "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
+    "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src 'self' blob: https://cdn.jsdelivr.net; " +
+    "connect-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
   if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
     res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
@@ -54,6 +57,7 @@ app.use('/api/auth', authRoutes);  // đăng ký, đăng nhập, email, mật kh
 app.use('/api/me', meRoutes);      // hồ sơ + cài đặt người đang đăng nhập
 app.use('/api/wallets', walletRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/transactions/:id/receipt', receiptRoutes);   // ảnh hoá đơn (< 200 KB, nằm trong giới hạn 1 MB)
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/transfers', transactionRoutes.transfers);
 app.use('/api/quickadd', quickaddRoutes);
@@ -65,6 +69,8 @@ app.use('/api/data', dataRoutes);
 app.use('/api/budgets', planningRoutes.budgets);
 app.use('/api/goals', planningRoutes.goals);
 app.use('/api/recurring', planningRoutes.rules);
+app.use('/api/hook', bankRoutes.hook);        // CÔNG KHAI: SePay gọi (kiểm mã bí mật mỗi lần)
+app.use('/api/bank', bankRoutes.router);
 app.use('/api/cron', cronRoutes);          // job định kỳ (bảo vệ bằng CRON_SECRET)
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)

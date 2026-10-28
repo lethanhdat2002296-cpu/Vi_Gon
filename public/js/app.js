@@ -13,6 +13,8 @@
     [/^\/plan$/, S.plan],
     [/^\/me$/, S.me],
     [/^\/settings$/, S.settings],
+    [/^\/bank$/, S.bank],
+    [/^\/bank\/pending$/, S.bankPending],
     [/^\/wallets$/, S.wallets],
     [/^\/wallets\/new$/, S.walletNew],
     [/^\/wallets\/(\d+)$/, S.walletEdit],

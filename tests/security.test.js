@@ -9,7 +9,9 @@ const app = require('../app.js');
 const PUBLIC = new Set([
   'GET /api/health',
   'POST /api/auth/register', 'POST /api/auth/login', 'POST /api/auth/verify-email',
-  'POST /api/auth/forgot', 'POST /api/auth/reset'
+  'POST /api/auth/forgot', 'POST /api/auth/reset',
+  // Webhook ngân hàng: không dùng JWT mà kiểm mã bí mật riêng của từng liên kết (test riêng)
+  'POST /api/hook/:hookId'
 ]);
 
 // Đường dẫn mount của router con từ regexp của Express 4
@@ -18,6 +20,8 @@ function mountPath(layer) {
   return layer.regexp.source
     .replace(/^\^/, '')
     .replace(/\\\/\?\(\?=\\\/\|\$\)$/, '')
+    // Tham số trên đường mount (vd /api/transactions/:id/receipt)
+    .split('(?:\\/([^/]+?))').join('/:param')
     .replace(/\\(.)/g, '$1');
 }
 
@@ -44,7 +48,7 @@ describe('rà soát: mọi API dữ liệu đều cần đăng nhập', () => {
   afterAll(() => new Promise(r => server.close(r)));
 
   it('liệt kê được đủ route (không bỏ sót router con)', () => {
-    for (const r of ['GET /api/wallets', 'POST /api/transfers', 'GET /api/export.xlsx', 'DELETE /api/me', 'POST /api/data/import.json', 'GET /api/reports/monthly']) {
+    for (const r of ['GET /api/wallets', 'POST /api/transfers', 'PUT /api/transactions/:param/receipt', 'POST /api/bank/links', 'GET /api/export.xlsx', 'DELETE /api/me', 'POST /api/data/import.json', 'GET /api/reports/monthly']) {
       expect(routes).toContain(r);
     }
     expect(routes.length).toBeGreaterThan(40);
