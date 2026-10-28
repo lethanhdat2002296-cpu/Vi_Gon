@@ -71,6 +71,8 @@ summary.get('/', async (req, res, next) => {
       else if (b.level === 'warn') alerts.push({ kind: 'budget_warn', budget_id: b.id, text: `Ngân sách ${b.name} đã dùng ${b.percent}%` });
     }
     if (rec.pending.length) alerts.push({ kind: 'recurring_pending', text: `${rec.pending.length} khoản định kỳ chờ xác nhận` });
+    const bankPending = await db.query(`SELECT COUNT(*)::int AS n FROM transactions WHERE book_id = $1 AND status = 'pending' AND deleted_at IS NULL`, [req.bookId]);
+    if (bankPending.rows[0].n) alerts.unshift({ kind: 'bank_pending', count: bankPending.rows[0].n, text: `${bankPending.rows[0].n} giao dịch ngân hàng chờ xác nhận` });
 
     res.json({
       upcoming: rec.upcoming.slice(0, 5),

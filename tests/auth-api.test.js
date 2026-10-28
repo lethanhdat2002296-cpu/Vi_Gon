@@ -42,7 +42,7 @@ describe.skipIf(!TEST_DB)('API tài khoản (Postgres thật)', () => {
       const r = await call('GET', '/api/health');
       expect(r.status).toBe(200);
       expect(r.body.db).toBe('up');
-      expect(r.body.migration).toBe('005_planning.sql');
+      expect(r.body.migration).toBe('006_bank.sql');
     });
   });
 

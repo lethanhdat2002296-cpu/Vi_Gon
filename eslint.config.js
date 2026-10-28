@@ -14,7 +14,7 @@ const browserGlobals = {
   FileReader: 'readonly', Image: 'readonly', Blob: 'readonly', URL: 'readonly', URLSearchParams: 'readonly',
   FormData: 'readonly', Event: 'readonly', console: 'readonly', Intl: 'readonly', sessionStorage: 'readonly',
   setTimeout: 'readonly', setInterval: 'readonly', clearTimeout: 'readonly', clearInterval: 'readonly',
-  VG: 'writable',
+  VG: 'writable', Tesseract: 'readonly', module: 'readonly',
   // Thêm global CDN (Chart, XLSX, Tesseract…) khi bắt đầu dùng
 };
 

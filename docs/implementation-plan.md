@@ -150,10 +150,10 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ## Bước 6 · M5 Kế hoạch (F09, F10, F11)
 
-- [ ] `005_planning.sql` (004 đã dùng cho tìm kiếm): `budgets`, `goals`, `recurring_rules`.
-- [ ] API CRUD tương ứng + `GET /api/budgets/status?month=`.
-- [ ] Cron `/api/cron/daily` (Vercel cron 1 lần/ngày, header `Authorization: Bearer CRON_SECRET`): tạo giao dịch định kỳ đến hạn (không trùng), gửi email ngân sách 80%/100%.
-- [ ] Tab Kế hoạch với 3 phần: Ngân sách · Mục tiêu · Định kỳ.
+- [x] `005_planning.sql` (004 đã dùng cho tìm kiếm): `budgets`, `goals`, `recurring_rules`.
+- [x] API CRUD tương ứng + `GET /api/budgets/status?month=`.
+- [x] Cron `/api/cron/daily` (Vercel cron 1 lần/ngày, header `Authorization: Bearer CRON_SECRET`): tạo giao dịch định kỳ đến hạn (không trùng), gửi email ngân sách 80%/100%.
+- [x] Tab Kế hoạch với 3 phần: Ngân sách · Mục tiêu · Định kỳ.
 
 **Xong khi:** đủ nghiệm thu F09–F11.
 
@@ -161,8 +161,8 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ## Bước 7 · M6 Tự động hoá (F12, F13)
 
-- [ ] Chốt SePay hay Casso (so giá, ngân hàng hỗ trợ, định dạng webhook).
-- [ ] `005_bank.sql`: `bank_links`, `category_rules`, cột `status` (pending/confirmed) cho giao dịch tự động.
+- [ ] Chốt SePay hay Casso (so giá, ngân hàng hỗ trợ, định dạng webhook). → Chọn **SePay** (tài liệu webhook rõ, có `id` chống trùng, xác thực `Authorization: Apikey`).
+- [ ] `006_bank.sql` (005 đã dùng cho kế hoạch): `bank_links`, `category_rules`, cột `status` (pending/confirmed) cho giao dịch tự động.
 - [ ] `POST /api/hook/:linkId`: kiểm mã bí mật, chống trùng bằng `external_ref`, gợi ý danh mục, đưa vào "Chờ xác nhận".
 - [ ] Luật từ khoá mặc định + học từ lần người dùng sửa.
 - [ ] Quét hoá đơn: Tesseract chạy trên trình duyệt (tham khảo `public/js/payment.js`, `utils/receipt.js` của repo `Server`).
@@ -173,7 +173,7 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ## Bước 8 · M7 Dùng chung (F14, F15, F16)
 
-- [ ] `006_sharing.sql`: `invites`, (`books`, `book_members` đã có từ `003_core.sql`), `groups`, `group_members`, `group_expenses`, `debts`, `debt_payments`.
+- [ ] `007_sharing.sql`: `invites`, (`books`, `book_members` đã có từ `003_core.sql`), `groups`, `group_members`, `group_expenses`, `debts`, `debt_payments`.
 - [ ] Sổ chung: mời, phân quyền, đổi sổ.
 - [ ] Chia tiền nhóm: thuật toán tất toán ít lần chuyển nhất (có test), VietQR (tham khảo `public/js/qr.js` của `Server`).
 - [ ] Sổ nợ + email nhắc hạn trong cron hằng ngày.

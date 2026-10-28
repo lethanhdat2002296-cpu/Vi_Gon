@@ -42,6 +42,7 @@
       item('#/wallets', '👛', 'Ví', 'Thêm, sửa, ẩn ví; chuyển tiền'),
       item('#/categories', '🏷️', 'Danh mục', 'Sửa, sắp xếp, gộp danh mục'),
       item('#/reports', '📊', 'Báo cáo', 'Chi theo danh mục, thu chi 6 tháng'),
+      item('#/bank', '🏦', 'Liên kết ngân hàng', 'Tự ghi giao dịch từ biến động số dư (SePay)'),
       item('#/settings', '⚙️', 'Cài đặt', 'Hồ sơ, mật khẩu, PIN, giao diện, sao lưu, xoá tài khoản')));
     var out = h('button', { type: 'button', class: 'btn ghost' }, 'Đăng xuất');
     out.addEventListener('click', function () {

@@ -339,3 +339,20 @@ button.icon-btn { border: 0; cursor: pointer; font-family: inherit; }
 .tx.dimmed { opacity: 0.55; }
 .tx .btn.sm { padding: 6px 10px; }
 .upcoming { gap: 6px; }
+
+/* ============ Bổ sung Bước 7 ============ */
+.code-row { display: flex; gap: 8px; align-items: center; }
+.code { flex: 1; min-width: 0; font-size: 13px; background: var(--surface-2); padding: 8px 10px; border-radius: 8px; word-break: break-all; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.steps { display: flex; flex-direction: column; gap: 8px; }
+.steps > div { display: flex; gap: 10px; align-items: center; font-size: 14px; }
+.steps b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: var(--surface-2); flex: none; }
+.steps .done b { background: var(--income); color: #fff; }
+.steps .cur b { background: var(--accent); color: var(--accent-ink); }
+.event-row { display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); padding: 6px 0; }
+.event-row .grow { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.tx-note { font-weight: 500; word-break: break-word; }
+.scan-box { display: flex; flex-direction: column; gap: 6px; }
+.scan-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+.scan-box .toggle-row { flex: 1; margin-left: 8px; padding: 8px 10px; }
+.receipt-img { width: 100%; border-radius: 12px; border: 1px solid var(--line); }

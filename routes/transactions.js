@@ -29,6 +29,9 @@ function publicTx(t) {
     source: t.source,
     transfer_group: t.transfer_group,
     deleted: !!t.deleted_at,
+    status: t.status || 'confirmed',
+    suggest_wallet_id: t.suggest_wallet_id ? Number(t.suggest_wallet_id) : null,
+    has_receipt: !!t.has_receipt,
     // Thông tin hiển thị (JOIN)
     wallet_name: t.wallet_name,
     category_name: t.category_name === undefined ? undefined : t.category_name,
@@ -42,7 +45,8 @@ function publicTx(t) {
 const SELECT_TX = `
   SELECT t.*, w.name AS wallet_name, c.name AS category_name,
          COALESCE(NULLIF(c.icon, ''), pc.icon) AS category_icon, c.color AS category_color,
-         o.wallet_id AS counterpart_wallet_id, ow.name AS counterpart_wallet_name
+         o.wallet_id AS counterpart_wallet_id, ow.name AS counterpart_wallet_name,
+         EXISTS (SELECT 1 FROM transaction_receipts rc WHERE rc.transaction_id = t.id) AS has_receipt
   FROM transactions t
   JOIN wallets w ON w.id = t.wallet_id
   LEFT JOIN categories c ON c.id = t.category_id
