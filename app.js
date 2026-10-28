@@ -1,0 +1,78 @@
+// Express app - dùng chung cho local dev (server.js) và Vercel function (api/index.js)
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const db = require('./lib/db');
+const config = require('./config');
+
+const app = express();
+const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+
+// ============ SECURITY HEADERS ============
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-XSS-Protection', '0');
+  // CSP: chỉ cho tài nguyên cùng origin + Google Fonts (Be Vietnam Pro)
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+  if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  }
+  next();
+});
+
+// CORS: mặc định cùng origin. Đặt ALLOWED_ORIGINS để cho thêm domain cụ thể.
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+  : false;
+app.use(cors({ origin: allowedOrigins }));
+
+app.use(express.json({ limit: '1mb' }));
+
+// Khi chạy local thì serve static từ public/ (trên Vercel do CDN serve)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Routes API: thêm dần theo từng bước (routes/*.js)
+
+// Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)
+app.get('/api/health', async (req, res) => {
+  let dbState = 'down', latency = null;
+  try {
+    const t0 = Date.now();
+    await db.query('SELECT 1');
+    dbState = 'up'; latency = Date.now() - t0;
+  } catch (e) { /* db down */ }
+  const ok = dbState === 'up';
+  res.status(ok ? 200 : 503).json({
+    ok,
+    db: dbState,
+    latency_ms: latency,
+    has_smtp: !!(config.SMTP.host && config.SMTP.user && config.SMTP.pass),
+    server_time: new Date().toISOString()
+  });
+});
+
+// API không tồn tại → JSON 404 (không trả trang HTML)
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Không tìm thấy' });
+});
+
+// Trang chính - chỉ áp dụng khi chạy local (Vercel tự xử qua public/)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Error handler: KHÔNG lộ chi tiết lỗi (tên bảng/cột/SQL) ra client ở production
+app.use((err, req, res, next) => {
+  console.error('[ERR]', req.method, req.originalUrl, '-', (err && err.message) || err);
+  const status = (err && (err.status || err.statusCode)) || 500;
+  const expose = status < 500 || !isProd;
+  res.status(status).json({
+    error: expose ? ((err && err.message) || 'Lỗi máy chủ') : 'Lỗi máy chủ. Vui lòng thử lại sau.'
+  });
+});
+
+module.exports = app;
