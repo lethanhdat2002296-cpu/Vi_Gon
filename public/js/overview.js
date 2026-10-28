@@ -112,7 +112,8 @@
     c.appendChild(h('div', { class: 'topbar' },
       h('div', { class: 'grow' }, h('span', { class: 'lbl' }, 'Xin chào'), h('h1', null, u.full_name || 'bạn')),
       eyeButton()));
-    c.appendChild(VG.bookSwitch());
+    var books = VG.bookSwitch();
+    if (books) c.appendChild(books);
     if (!u.onboarded) {
       c.appendChild(h('div', { class: 'card' }, h('b', null, 'Hoàn tất làm quen'),
         h('p', { class: 'muted small' }, 'Tạo ví đầu tiên để bắt đầu ghi thu chi.'),
@@ -293,7 +294,8 @@
     var c = VG.shell('/ledger');
     var exportBtn = h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Xuất Excel', title: 'Xuất Excel' }, '⤓');
     c.appendChild(VG.topbar('Sổ giao dịch', { action: exportBtn }));
-    c.appendChild(VG.bookSwitch());
+    var books = VG.bookSwitch();
+    if (books) c.appendChild(books);
     var search = h('input', { type: 'search', class: 'search', placeholder: 'Tìm ghi chú, danh mục hoặc số tiền (45k)', value: f.q, 'aria-label': 'Tìm kiếm', enterkeyhint: 'search' });
     var n = activeCount(f);
     var filterBtn = h('button', { type: 'button', class: 'chip' + (n ? ' on-soft' : '') }, '⚙ Lọc' + (n ? ' · ' + n : ''));
