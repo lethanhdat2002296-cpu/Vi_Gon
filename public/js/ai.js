@@ -1,18 +1,26 @@
-// Trợ lý AI tư vấn tiền (#/ai). Mô hình ngôn ngữ chạy NGAY TRÊN MÁY bằng WebLLM + WebGPU:
+// Trợ lý AI tư vấn tiền (#/ai + bong bóng chat). Mô hình ngôn ngữ chạy NGAY TRÊN MÁY bằng WebLLM + WebGPU:
 // không gọi dịch vụ AI nào, số liệu không rời khỏi máy. Máy chủ chỉ đưa số liệu tóm tắt (/api/ai/context).
 // Lần đầu tải mô hình (~0,9–1,8 GB) từ Hugging Face; trình duyệt lưu lại cho lần sau.
+// Mô hình chạy trong Web Worker (public/js/ai-worker.js) để giao diện không bị đứng khi AI đang nghĩ.
 (function (VG) {
   'use strict';
   var h = VG.h;
   var A = window.VGAi;
   // Phiên bản cố định của thư viện (ESM tự chứa, tải từ jsDelivr khi mở trợ lý lần đầu)
   var LIB = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/lib/index.js';
+  // Worker cùng phiên bản với file này (?v=… do bước build gắn) để không dính bản cũ trong cache
+  var VERSION = (function () {
+    var s = document.querySelector('script[src*="/js/ai.js"]');
+    var m = s && s.getAttribute('src').match(/\?v=([\w-]+)/);
+    return m ? m[1] : '';
+  })();
+  var WORKER = '/js/ai-worker.js' + (VERSION ? '?v=' + VERSION : '');
   var MODELS = [
     { key: 'light', name: 'Nhẹ', size: '~0,9 GB', note: 'Nhanh, hợp hầu hết điện thoại', f16: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', f32: 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC' },
     { key: 'smart', name: 'Thông minh hơn', size: '~1,8 GB', note: 'Trả lời tốt hơn, cần máy mạnh', f16: 'Qwen2.5-3B-Instruct-q4f16_1-MLC', f32: 'Qwen2.5-3B-Instruct-q4f32_1-MLC' }
   ];
-  var CHAT_KEY = 'vigon_ai_chat', MODEL_KEY = 'vigon_ai_model';
-  var HISTORY_TURNS = 6;
+  var MODEL_KEY = 'vigon_ai_model', READY_KEY = 'vigon_ai_ready';
+  var HISTORY_TURNS = 6, KEEP_MESSAGES = 60;
   var SUGGEST = [
     'Mình có 15 triệu, nên chia thế nào cho hợp lý?',
     'Lập kế hoạch chi tiêu cho những ngày còn lại của tháng',
@@ -20,12 +28,19 @@
     'Muốn để dành 50 triệu trong 1 năm thì làm sao?'
   ];
 
-  // Trạng thái giữ suốt phiên (mô hình đã nạp vẫn dùng được khi quay lại màn này)
-  var S = { lib: null, engine: null, modelId: null, gpu: undefined, busy: false };
+  // Trạng thái giữ suốt phiên: mô hình đã nạp dùng chung cho màn #/ai và bong bóng chat
+  var S = { lib: null, engine: null, modelId: null, gpu: undefined, busy: false, loading: null, listeners: [], ctx: null };
 
-  function loadChat() { try { return JSON.parse(sessionStorage.getItem(CHAT_KEY) || '[]'); } catch (e) { return []; } }
-  function saveChat(list) { try { sessionStorage.setItem(CHAT_KEY, JSON.stringify(list.slice(-30))); } catch (e) {} }
-  function savedModel() { try { return localStorage.getItem(MODEL_KEY) || 'light'; } catch (e) { return 'light'; } }
+  function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // Lịch sử chat lưu trên máy, riêng từng tài khoản (không gửi lên máy chủ)
+  function chatKey() { return 'vigon_ai_chat_' + (VG.state.user ? VG.state.user.id : 'x'); }
+  function loadChat() { try { return JSON.parse(localStorage.getItem(chatKey()) || '[]'); } catch (e) { return []; } }
+  function saveChat(list) { store(chatKey(), JSON.stringify(list.slice(-KEEP_MESSAGES))); }
+  function savedModel() { return read(MODEL_KEY) || 'light'; }
+
+  // Đã tải mô hình trên máy này ít nhất 1 lần → hiện bong bóng chat
+  VG.aiReady = function () { return !!S.engine || !!read(READY_KEY); };
 
   // WebGPU + có hỗ trợ số thực 16-bit không (không có thì dùng bản q4f32)
   function gpuInfo() {
@@ -46,44 +61,80 @@
     return gpu && gpu.f16 ? m.f16 : m.f32;
   }
 
+  // Nạp mô hình (1 lần cho cả phiên). onProgress(report) nhận tiến độ; nhiều nơi chờ cùng lúc được.
+  function ensureEngine(onProgress) {
+    if (S.engine) return Promise.resolve(S.engine);
+    if (onProgress) S.listeners.push(onProgress);
+    if (S.loading) return S.loading;
+    var progress = function (r) { S.listeners.forEach(function (f) { try { f(r); } catch (e) {} }); };
+    S.loading = gpuInfo().then(function (gpu) {
+      if (!gpu) throw new Error('Máy này chưa hỗ trợ WebGPU');
+      var id = modelIdFor(savedModel(), gpu);
+      return lib().then(function (L) {
+        var cfg = { initProgressCallback: progress };
+        var viaWorker;
+        try {
+          viaWorker = L.CreateWebWorkerMLCEngine(new window.Worker(WORKER, { type: 'module' }), id, cfg);
+        } catch (e) { viaWorker = Promise.reject(e); }
+        // Trình duyệt không chạy được worker dạng module → chạy ngay trên luồng chính
+        return viaWorker.catch(function () { return L.CreateMLCEngine(id, cfg); });
+      }).then(function (engine) {
+        S.engine = engine; S.modelId = id;
+        store(READY_KEY, id);
+        return engine;
+      });
+    });
+    S.loading.catch(function () {}).then(function () { S.loading = null; S.listeners = []; });
+    return S.loading;
+  }
+
   // Bỏ ký hiệu markdown đơn giản, cắt khối "KẾ HOẠCH:" (đã vẽ thành thẻ riêng)
   function cleanReply(text, hasPlan) {
     var t = String(text || '');
     if (hasPlan) { var i = A.fold(t).search(/ke hoach\s*:/); if (i > 0) t = t.slice(0, i); }
     return t.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/^#+\s*/gm, '').trim();
   }
+  function progressText(r) {
+    var t = String(r.text || '');
+    var m = t.match(/(\d+)MB fetched/);
+    var pct = Math.round((r.progress || 0) * 100);
+    if (/Fetching param cache|Loading model from cache/i.test(t)) return (m ? 'Đã tải ' + m[1] + ' MB' : 'Đang nạp mô hình') + ' · ' + pct + '%';
+    if (/shader|GPU/i.test(t)) return 'Đang chuẩn bị trên GPU… ' + pct + '%';
+    return 'Đang chuẩn bị… ' + pct + '%';
+  }
 
+  // ===== Màn #/ai =====
   VG.screens.ai = function () {
     var c = VG.shell('/me');
     var clearBtn = h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Xoá cuộc trò chuyện', title: 'Xoá cuộc trò chuyện' }, '↺');
     c.appendChild(VG.topbar('Trợ lý AI', { back: '/me', action: clearBtn }));
     var body = h('div', { class: 'stack' }, VG.loading());
     c.appendChild(body);
-    clearBtn.addEventListener('click', function () { saveChat([]); VG.route(); });
-
+    clearBtn.addEventListener('click', function () {
+      if (!loadChat().length || window.confirm('Xoá toàn bộ cuộc trò chuyện?')) { saveChat([]); VG.route(); }
+    });
     gpuInfo().then(function (gpu) {
       body.textContent = '';
       if (!gpu) {
         body.appendChild(VG.empty('🧠', 'Máy này chưa chạy được AI', 'Trợ lý chạy ngay trên máy nên cần WebGPU. Hãy mở Ví Gọn bằng Chrome bản mới (Android 12 trở lên) hoặc Chrome / Edge trên máy tính.'));
         return;
       }
-      if (S.engine) return chat(body);
+      if (VG.aiReady()) return chatView(body, {});
       setup(body, gpu);
     });
   };
 
-  // ===== Tải / bật mô hình =====
+  // ===== Chọn + tải mô hình lần đầu =====
   function setup(body, gpu) {
     var key = savedModel();
-    var intro = h('div', { class: 'card hero ai-hero' },
+    body.appendChild(h('div', { class: 'card hero ai-hero' },
       h('span', { class: 'ai-spark', 'aria-hidden': 'true' }, '✨'),
       h('b', { class: 'big-sm' }, 'Hỏi cách dùng tiền của bạn'),
-      h('span', { class: 'lbl' }, 'AI đọc số liệu thu chi trong Ví Gọn để tư vấn và lập kế hoạch. Chạy ngay trên điện thoại: số liệu không gửi đi đâu.'));
-    body.appendChild(intro);
+      h('span', { class: 'lbl' }, 'AI đọc số liệu thu chi trong Ví Gọn để tư vấn và lập kế hoạch. Chạy ngay trên điện thoại: số liệu không gửi đi đâu.')));
     var status = h('span', { class: 'lbl' });
     var btn = h('button', { type: 'button', class: 'btn' }, 'Tải và bật trợ lý');
     var bar = h('div', { class: 'prog hidden' }, h('i'));
-    var pick = VG.chips(MODELS.map(function (m) { return [m.key, m.name + ' · ' + m.size]; }), key, function (k) { key = k; check(); });
+    var pick = VG.chips(MODELS.map(function (m) { return [m.key, m.name + ' · ' + m.size]; }), key, function (k) { key = k; store(MODEL_KEY, k); check(); });
     var note = h('span', { class: 'muted small' });
     function check() {
       var m = MODELS.filter(function (x) { return x.key === key; })[0];
@@ -94,22 +145,14 @@
     }
     check();
     btn.addEventListener('click', function () {
-      try { localStorage.setItem(MODEL_KEY, key); } catch (e) {}
+      store(MODEL_KEY, key);
       btn.disabled = true; pick.classList.add('dimmed');
       bar.className = 'prog';
       status.textContent = 'Đang tải thư viện…';
-      var id = modelIdFor(key, gpu);
-      lib().then(function (L) {
-        return L.CreateMLCEngine(id, {
-          initProgressCallback: function (r) {
-            bar.firstChild.style.width = Math.round((r.progress || 0) * 100) + '%';
-            status.textContent = progressText(r);
-          }
-        });
-      }).then(function (engine) {
-        S.engine = engine; S.modelId = id;
-        VG.route();
-      }).catch(function (e) {
+      ensureEngine(function (r) {
+        bar.firstChild.style.width = Math.round((r.progress || 0) * 100) + '%';
+        status.textContent = progressText(r);
+      }).then(function () { VG.route(); }).catch(function (e) {
         btn.disabled = false; pick.classList.remove('dimmed'); bar.className = 'prog hidden';
         status.textContent = '';
         VG.toast('Không bật được trợ lý: ' + (e && e.message ? e.message.slice(0, 160) : 'lỗi không rõ'), { kind: 'err' });
@@ -117,23 +160,18 @@
     });
     body.appendChild(h('div', { class: 'card stack' }, h('b', null, 'Chọn mô hình'), pick, note, bar, status, btn));
   }
-  function progressText(r) {
-    var t = String(r.text || '');
-    var m = t.match(/(\d+)MB fetched/);
-    var pct = Math.round((r.progress || 0) * 100);
-    if (/Fetching param cache|Loading model from cache/i.test(t)) return (m ? 'Đã tải ' + m[1] + ' MB' : 'Đang tải mô hình') + ' · ' + pct + '%';
-    if (/shader|GPU|Loading GPU/i.test(t)) return 'Đang chuẩn bị trên GPU… ' + pct + '%';
-    return 'Đang chuẩn bị… ' + pct + '%';
-  }
 
-  // ===== Trò chuyện =====
-  function chat(body) {
+  // ===== Trò chuyện (dùng cho cả màn #/ai và bong bóng chat) =====
+  function chatView(body, opts) {
     var list = loadChat();
     var box = h('div', { class: 'chat', 'aria-live': 'polite' });
     var input = h('textarea', { class: 'chat-input', rows: '1', placeholder: 'Hỏi về tiền của bạn…', maxlength: '500', 'aria-label': 'Câu hỏi' });
     var send = h('button', { type: 'button', class: 'chat-send', 'aria-label': 'Gửi' }, '➤');
-    var ctx = null;
+    var loadBar = h('div', { class: 'prog' }, h('i'));
+    var loadText = h('span', { class: 'lbl' }, 'Đang mở trợ lý…');
+    var loadBox = h('div', { class: 'card ai-loading' + (S.engine ? ' hidden' : '') }, loadText, loadBar);
     body.appendChild(h('p', { class: 'lbl center-text' }, '✨ AI chạy trên máy · Gợi ý để tham khảo, bạn tự quyết định nhé.'));
+    body.appendChild(loadBox);
     body.appendChild(box);
     var chips = h('div', { class: 'chips ai-suggest' }, SUGGEST.map(function (q) {
       return h('button', { type: 'button', class: 'chip', onclick: function () { ask(q); } }, q);
@@ -145,6 +183,18 @@
     send.addEventListener('click', function () {
       if (S.busy && S.engine) { S.engine.interruptGenerate(); return; }
       ask(input.value);
+    });
+
+    // Mô hình đã tải: nạp lại vào GPU ngay khi mở (gõ câu hỏi trong lúc chờ được)
+    var ready = ensureEngine(function (r) {
+      loadBar.firstChild.style.width = Math.round((r.progress || 0) * 100) + '%';
+      loadText.textContent = 'Đang mở trợ lý · ' + progressText(r);
+    }).then(function (engine) { loadBox.classList.add('hidden'); return engine; });
+    ready.catch(function (e) {
+      loadText.textContent = 'Không mở được trợ lý: ' + (e && e.message ? e.message.slice(0, 160) : 'lỗi không rõ');
+      loadBar.classList.add('hidden');
+      // Bộ nhớ đệm mô hình bị xoá → quay lại bước tải
+      store(READY_KEY, null);
     });
 
     function bubble(m) {
@@ -161,7 +211,9 @@
       list.forEach(function (m) { box.appendChild(bubble(m)); });
       chips.className = list.length ? 'hidden' : 'chips ai-suggest';
     }
+    function toEnd() { var last = box.lastChild; if (last) last.scrollIntoView({ block: 'end', behavior: 'smooth' }); }
     draw();
+    if (list.length) setTimeout(toEnd, 50);
 
     function ask(q) {
       q = String(q || '').trim();
@@ -169,17 +221,21 @@
       input.value = ''; input.style.height = 'auto';
       var total = A.moneyIn(q);
       list.push({ role: 'user', content: q });
+      saveChat(list);
       draw();
-      var live = h('div', { class: 'msg-row assistant' }, h('div', { class: 'bubble typing' }, 'Đang nghĩ…'));
+      var live = h('div', { class: 'msg-row assistant' }, h('div', { class: 'bubble typing' }, S.engine ? 'Đang nghĩ…' : 'Chờ trợ lý mở xong…'));
       box.appendChild(live);
-      live.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      toEnd();
       S.busy = true; send.textContent = '■'; send.setAttribute('aria-label', 'Dừng');
-      (ctx ? Promise.resolve(ctx) : VG.api('GET', '/ai/context', null, { fresh: true }).then(function (d) { ctx = d.context; return ctx; }))
-        .then(function (cx) {
+      var ctxP = S.ctx ? Promise.resolve(S.ctx) : VG.api('GET', '/ai/context', null, { fresh: true }).then(function (d) { S.ctx = d.context; return S.ctx; });
+      Promise.all([ready, ctxP])
+        .then(function (r) {
+          var engine = r[0], cx = r[1];
+          live.firstChild.textContent = 'Đang nghĩ…';
           var msgs = [{ role: 'system', content: A.systemPrompt(cx) }];
           list.slice(-HISTORY_TURNS - 1, -1).forEach(function (m) { msgs.push({ role: m.role, content: m.content }); });
           msgs.push({ role: 'user', content: q + (total ? '\n(Số tiền cần chia: ' + VG.fmt(total) + ')' : '') });
-          return S.engine.chat.completions.create({ messages: msgs, stream: true, temperature: 0.6, max_tokens: 800 });
+          return engine.chat.completions.create({ messages: msgs, stream: true, temperature: 0.6, max_tokens: 700 });
         })
         .then(function (stream) {
           var text = '';
@@ -200,18 +256,33 @@
         })
         .then(function (text) {
           list.push({ role: 'assistant', content: text || '(Không có câu trả lời)', total: total });
-          saveChat(list);
         })
         .catch(function (e) {
           list.push({ role: 'assistant', content: 'Xin lỗi, mình gặp lỗi: ' + (e && e.message ? e.message.slice(0, 160) : 'không rõ') });
         })
         .then(function () {
+          saveChat(list);
           S.busy = false; send.textContent = '➤'; send.setAttribute('aria-label', 'Gửi');
           draw();
-          var last = box.lastChild;
-          if (last) last.scrollIntoView({ block: 'end', behavior: 'smooth' });
+          toEnd();
         });
     }
+    if (opts.focus) setTimeout(function () { input.focus(); }, 300);
+  }
+
+  // ===== Bong bóng chat nổi (khi đã tải mô hình) =====
+  VG.aiBubble = function () {
+    if (!VG.aiReady() || /^#\/ai\b/.test(location.hash)) return null;
+    var b = h('button', { type: 'button', class: 'ai-fab', 'aria-label': 'Mở trợ lý AI', title: 'Trợ lý AI' }, '✨');
+    b.addEventListener('click', openChatSheet);
+    return b;
+  };
+  function openChatSheet() {
+    var body = h('div', { class: 'stack ai-sheet' });
+    body.appendChild(h('div', { class: 'row-between' }, h('h2', null, '✨ Trợ lý AI'),
+      h('a', { href: '#/ai', class: 'small' }, 'Toàn màn hình ›')));
+    VG.openSheet(body);
+    chatView(body, { focus: true });
   }
 
   // ===== Thẻ kế hoạch + áp thành ngân sách =====
@@ -234,7 +305,7 @@
 
   function applyPlan(items) {
     Promise.all([VG.api('GET', '/categories'), VG.api('GET', '/budgets/status', null, { fresh: true })]).then(function (r) {
-      var cats = r[0].categories.filter(function (x) { return x.kind === 'expense' && !x.parent_id && !x.archived; });
+      var cats = r[0].categories.filter(function (x) { return x.kind === 'expense' && !x.parent_id; });
       var byCat = {};
       r[1].budgets.forEach(function (b) { if (b.category_id) byCat[b.category_id] = b; });
       var todo = [], skip = [];

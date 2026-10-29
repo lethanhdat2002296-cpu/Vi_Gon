@@ -24,7 +24,7 @@
       }
       return h('a', { href: '#' + t[0], class: 'tab ' + t[2] + (t[0] === active ? ' on' : ''), 'aria-current': t[0] === active ? 'page' : null }, tabIcon(t[2]), t[1]);
     }));
-    VG.render(content, nav);
+    VG.render(content, nav, VG.aiBubble ? VG.aiBubble() : null);
     return content;
   }
   VG.shell = shell;
