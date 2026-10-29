@@ -83,7 +83,7 @@ router.post('/chat', async (req, res, next) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + config.AI_HOST_TOKEN },
         body: JSON.stringify({ messages, max_tokens: 800 }),
-        signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(55000)])
+        signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(280000)])
       });
     } catch (e) {
       hostCache = null;

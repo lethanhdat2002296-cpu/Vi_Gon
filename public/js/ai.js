@@ -291,6 +291,10 @@
       toEnd();
       S.busy = true; send.textContent = '■'; send.setAttribute('aria-label', 'Dừng');
       var onText = function (text) { live.firstChild.className = 'bubble'; live.firstChild.textContent = cleanReply(text, false); };
+      // Laptop vừa bật / lâu không dùng phải nạp mô hình (~30 giây) → nói rõ để người dùng chờ
+      setTimeout(function () {
+        if (live.firstChild.className === 'bubble typing' && useHost()) live.firstChild.textContent = 'Laptop đang khởi động AI, chờ chút nhé (lần đầu ~30 giây)…';
+      }, 8000);
       var turns = list.slice(-HISTORY_TURNS - 1, -1).map(function (m) { return { role: m.role, content: m.content }; });
       turns.push({ role: 'user', content: q + (total ? '\n(Số tiền cần chia: ' + VG.fmt(total) + ')' : '') });
       var answer = useHost() ? askHost(turns, onText).catch(function (e) {
