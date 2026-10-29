@@ -29,7 +29,8 @@
     [/^\/join\/([A-Za-z0-9_-]{20,64})$/, S.join],
     [/^\/groups$/, S.groups],
     [/^\/groups\/(\d+)$/, S.groupDetail],
-    [/^\/debts$/, S.debts]
+    [/^\/debts$/, S.debts],
+    [/^\/ai$/, S.ai]
   ];
   var JOIN_KEY = 'vigon_join';
 

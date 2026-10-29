@@ -369,7 +369,8 @@ window.VG = (function () {
     logout: ['M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15', 'M10 16l-4-4 4-4', 'M6 12h10'],
     check: ['M5 12.5l4.5 4.5L19 7.5'],
     plus: ['M12 5v14', 'M5 12h14'],
-    swap: ['M4 8h13l-3-3', 'M20 16H7l3 3']
+    swap: ['M4 8h13l-3-3', 'M20 16H7l3 3'],
+    spark: ['M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z', 'M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z']
   };
   function icon(name, cls) {
     var NS = 'http://www.w3.org/2000/svg';

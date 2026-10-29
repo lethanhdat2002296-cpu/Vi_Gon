@@ -463,4 +463,4 @@ rules.post('/:id/pending/:date/skip', canWrite, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-module.exports = { budgets, goals, rules, budgetsStatus, rulesOverview };
+module.exports = { budgets, goals, rules, budgetsStatus, rulesOverview, goalsList };

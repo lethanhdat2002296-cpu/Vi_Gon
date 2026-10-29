@@ -254,6 +254,12 @@
         var cls = a.kind === 'budget_over' ? 'msg err plain-link' : (a.kind === 'recurring_pending' || a.kind === 'bank_pending') ? 'msg info plain-link' : 'msg warn plain-link';
         body.appendChild(h('a', { href: href, class: cls }, h('span', null, (a.kind === 'recurring_pending' || a.kind === 'bank_pending' ? '🔔 ' : '⚠️ ') + a.text), h('span', { 'aria-hidden': 'true' }, '›')));
       });
+      // Lối vào trợ lý AI
+      body.appendChild(h('a', { href: '#/ai', class: 'plain' }, h('div', { class: 'card ai-entry' },
+        h('span', { class: 'ai-spark', 'aria-hidden': 'true' }, '✨'),
+        h('div', { class: 'grow' }, h('b', { class: 'block' }, 'Hỏi trợ lý AI'), h('span', { class: 'lbl' }, 'Có một khoản tiền? Hỏi cách chia và lập kế hoạch chi tiêu')),
+        h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))));
+
       // ===== Bảng điều khiển: biểu đồ ngay ở Tổng quan =====
       var dash = h('div', { class: 'stack' });
       body.appendChild(dash);

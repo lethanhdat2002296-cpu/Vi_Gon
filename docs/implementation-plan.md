@@ -182,6 +182,17 @@ Giao diện: trang Tổng quan, tab Sổ (nhóm theo ngày, lọc, tìm, vuốt 
 
 ---
 
+## Bổ sung · Trợ lý AI tư vấn tiền (chạy trên máy)
+
+Chủ repo chọn mô hình chạy ngay trên máy (không gọi dịch vụ AI, số liệu không rời máy).
+
+- [x] `GET /api/ai/context`: số liệu tóm tắt của sổ đang dùng (số dư, thu chi tháng này, trung bình 3 tháng trước theo danh mục, ngân sách, mục tiêu, sổ nợ).
+- [x] `public/js/ai-core.js` (có test): đọc số tiền trong câu hỏi, lời nhắc hệ thống, đọc khối "KẾ HOẠCH:", chỉnh tổng cho đúng, khớp danh mục.
+- [x] Màn `#/ai`: WebLLM `@mlc-ai/web-llm@0.2.85`, mô hình Qwen2.5 1.5B (mặc định, ~0,9 GB) hoặc 3B (~1,8 GB); tự chọn bản q4f32 khi GPU không có shader-f16; trả lời từng chữ, dừng được; thẻ kế hoạch → đặt thành ngân sách tháng.
+- [ ] Kiểm trên điện thoại thật: thời gian tải lần đầu, tốc độ trả lời, chất lượng tiếng Việt.
+
+---
+
 ## Quy ước làm việc
 
 - Mỗi bước một nhánh + một PR; mô tả PR liệt kê tiêu chí nghiệm thu đã đạt, kèm ảnh chụp màn hình điện thoại.
