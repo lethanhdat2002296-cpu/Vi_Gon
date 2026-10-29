@@ -1,0 +1,13 @@
+{
+  "appId": "vn.vigon.app",
+  "appName": "Ví Gọn",
+  "webDir": "www",
+  "server": {
+    "url": "https://walletapps-zeta.vercel.app",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "backgroundColor": "#0B8A8F",
+    "adjustMarginsForEdgeToEdge": "force"
+  }
+}
