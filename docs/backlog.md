@@ -48,3 +48,21 @@ Cần chủ repo cung cấp
 - Ngân hàng báo bằng thông báo app hay SMS (SMS cần thêm quyền đọc tin nhắn).
 - Mỗi ngân hàng 2–3 ảnh thông báo thật (1 tiền vào, 1 tiền ra), che số tài khoản và tên người.
 - Hãng điện thoại + bản Android.
+
+## B03 · Trợ lý AI chạy trên laptop của chủ repo (thay cho AI chạy trên điện thoại)
+
+Lý do: mô hình chạy trên điện thoại chậm, lag. Laptop có GPU / RAM lớn chạy mô hình to hơn (Qwen2.5 7B–14B), nhanh và giỏi tiếng Việt hơn; chi phí chỉ là tiền điện; số liệu chỉ đi tới laptop của chính chủ repo.
+
+```
+Điện thoại → Máy chủ Ví Gọn (Vercel: đăng nhập, gắn số liệu, giới hạn lượt) → Cloudflare Tunnel + mật khẩu riêng → Laptop (Ollama)
+```
+
+Phía chủ repo
+- [ ] Gửi cấu hình laptop: hệ điều hành, RAM, card đồ hoạ (NVIDIA mấy GB / Mac chip M).
+- [ ] Cài Ollama, tải mô hình (vd `ollama pull qwen2.5:7b`); cài Cloudflare Tunnel; để máy luôn bật, cắm sạc, tắt ngủ.
+- [ ] Đặt biến Vercel: địa chỉ tunnel + mật khẩu riêng.
+
+Phía code
+- [ ] API máy chủ nhận câu hỏi, gắn số liệu (dùng lại `/api/ai/context`), chuyển sang laptop, trả lời từng chữ (stream); kiểm giới hạn thời gian chạy của Vercel.
+- [ ] Giới hạn số câu hỏi mỗi người mỗi ngày; không bao giờ mở Ollama thẳng ra internet.
+- [ ] Công tắc trong app: "AI ở laptop" / "AI trên máy"; laptop không phản hồi thì tự chuyển sang AI trên máy.

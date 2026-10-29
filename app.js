@@ -82,7 +82,14 @@ app.use('/api/ai', aiRoutes);                // số liệu tóm tắt cho trợ
 app.use('/api/cron', cronRoutes);          // job định kỳ (bảo vệ bằng CRON_SECRET)
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)
+// ?smtp=1: thử đăng nhập máy chủ thư (không gửi), kết quả giữ 30 giây để khỏi bị gọi dồn
+let smtpCheck = null;
 app.get('/api/health', async (req, res) => {
+  let smtp;
+  if (req.query.smtp === '1') {
+    if (!smtpCheck || Date.now() - smtpCheck.at > 30000) smtpCheck = { at: Date.now(), result: await require('./utils/email').checkSmtp() };
+    smtp = smtpCheck.result;
+  }
   let dbState = 'down', latency = null, migration = null;
   try {
     const t0 = Date.now();
@@ -99,6 +106,7 @@ app.get('/api/health', async (req, res) => {
     latency_ms: latency,
     migration,
     has_smtp: !!(config.SMTP.host && config.SMTP.user && config.SMTP.pass),
+    smtp,
     server_time: new Date().toISOString()
   });
 });
