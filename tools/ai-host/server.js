@@ -67,7 +67,11 @@ function cleanMessages(list) {
 const server = http.createServer(async (req, res) => {
   const t0 = Date.now();
   try {
-    if (!authorized(req)) return send(res, 401, { error: 'unauthorized' });
+    if (!authorized(req)) {
+      const got = String(req.headers.authorization || '').replace(/^Bearer /, '');
+      if (got) console.log('✗ Sai mật khẩu: nhận chuỗi dài', got.length, '· mã kiểm tra', crypto.createHash('sha256').update(got).digest('hex').slice(0, 8));
+      return send(res, 401, { error: 'unauthorized' });
+    }
     const url = req.url.split('?')[0];
     if (req.method === 'GET' && url === '/health') {
       const r = await fetch(OLLAMA + '/api/tags').then(x => x.json()).catch(() => null);
@@ -104,6 +108,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
+  const check = crypto.createHash('sha256').update(TOKEN).digest('hex').slice(0, 8);
   console.log(`✓ Cổng gác AI Ví Gọn đang chạy: http://127.0.0.1:${PORT} · mô hình ${MODEL}`);
+  console.log(`  Mật khẩu: dài ${TOKEN.length}, mã kiểm tra ${check} (phải giống token_check ở /api/health?ai=1)`);
   console.log('  Mở ra internet bằng: tailscale funnel --bg ' + PORT);
 });

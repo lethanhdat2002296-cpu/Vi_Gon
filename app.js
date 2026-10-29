@@ -90,6 +90,11 @@ app.get('/api/health', async (req, res) => {
   if (req.query.ai === '1') {
     const s = await aiRoutes.hostStatus();
     aiHost = { configured: s.configured, ok: s.ok, model: s.model || null, error: s.error || (s.ok ? undefined : s.status ? 'status ' + s.status : undefined) };
+    // Lệch mật khẩu (401): so độ dài + 8 ký tự đầu sha256 với laptop — không lộ được mật khẩu
+    if (s.configured && !s.ok) {
+      aiHost.token_length = config.AI_HOST_TOKEN.length;
+      aiHost.token_check = require('crypto').createHash('sha256').update(config.AI_HOST_TOKEN).digest('hex').slice(0, 8);
+    }
   }
   if (req.query.smtp === '1') {
     if (!smtpCheck || Date.now() - smtpCheck.at > 30000) smtpCheck = { at: Date.now(), result: await require('./utils/email').checkSmtp() };
