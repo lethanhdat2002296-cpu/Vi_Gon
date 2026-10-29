@@ -128,4 +128,30 @@ async function sendDebtReminder(toEmail, fullName, d) {
   return send(toEmail, `[Ví Gọn] ${title}`, html, `${title}: ${vnd(d.remaining)}`);
 }
 
-module.exports = { sendVerifyEmail, sendResetPassword, sendBudgetAlert, sendInvite, sendDebtReminder, escapeHtml };
+// Kiểm kết nối + đăng nhập SMTP (không gửi thư). Trả lý do khi lỗi để chủ app tự sửa cấu hình.
+// Không lộ mật khẩu: chỉ báo độ dài và email đã che bớt.
+const SMTP_HINT = {
+  EAUTH: 'Gmail từ chối đăng nhập: kiểm SMTP_USER (đúng Gmail đã tạo mật khẩu ứng dụng) và SMTP_PASS (16 ký tự, viết liền, không dấu cách)',
+  ESOCKET: 'Không nói chuyện được với máy chủ thư: Gmail dùng SMTP_HOST=smtp.gmail.com, SMTP_PORT=587, SMTP_SECURE=false',
+  ECONNECTION: 'Không kết nối được máy chủ thư: kiểm SMTP_HOST và SMTP_PORT',
+  ETIMEDOUT: 'Hết thời gian kết nối: kiểm SMTP_HOST, SMTP_PORT (587) và SMTP_SECURE (false)',
+  EDNS: 'Sai tên máy chủ thư: Gmail là smtp.gmail.com'
+};
+function maskEmail(e) {
+  const [u, d] = String(e || '').split('@');
+  return u ? u.slice(0, 3) + '***' + (d ? '@' + d : '') : '';
+}
+async function checkSmtp() {
+  const s = config.SMTP;
+  const info = { host: s.host || null, port: s.port, secure: s.secure, user: maskEmail(s.user), pass_length: (s.pass || '').length, from: s.from };
+  const t = getTransporter();
+  if (!t) return { ok: false, reason: 'Chưa đặt đủ SMTP_HOST, SMTP_USER, SMTP_PASS', ...info };
+  try {
+    await t.verify();
+    return { ok: true, ...info };
+  } catch (e) {
+    return { ok: false, code: e.code || 'ERR', response_code: e.responseCode || null, reason: SMTP_HINT[e.code] || String(e.message || '').slice(0, 160), ...info };
+  }
+}
+
+module.exports = { checkSmtp, sendVerifyEmail, sendResetPassword, sendBudgetAlert, sendInvite, sendDebtReminder, escapeHtml };
