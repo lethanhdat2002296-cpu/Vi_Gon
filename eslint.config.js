@@ -46,6 +46,12 @@ module.exports = [
     }
   },
 
+  // Worker chạy mô hình AI (module ESM)
+  {
+    files: ['public/js/ai-worker.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { self: 'readonly' } }
+  },
+
   // Test (ESM, vitest import tường minh)
   {
     files: ['tests/**/*.js'],

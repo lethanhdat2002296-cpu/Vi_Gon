@@ -552,3 +552,9 @@ h1 { font-weight: 800; letter-spacing: -0.02em; }
 .plan-ai { width: 100%; gap: 10px; }
 .plan-line { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
 .plan-ai .btn.sm { align-self: flex-start; }
+/* Bong bóng chat AI */
+.ai-fab { position: fixed; right: max(16px, calc((100vw - 440px) / 2 + 16px)); bottom: calc(92px + env(safe-area-inset-bottom)); z-index: 11; width: 54px; height: 54px; border-radius: 50%; border: 0; background: var(--grad); color: #fff; font-size: 24px; cursor: pointer; box-shadow: var(--grad-shadow); }
+.ai-fab:active { transform: scale(0.95); }
+.ai-sheet .chat-bar { bottom: 0; box-shadow: none; }
+.ai-sheet h2 { font-size: 18px; }
+.ai-loading { gap: 6px; }
