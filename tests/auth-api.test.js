@@ -138,13 +138,15 @@ describe.skipIf(!TEST_DB)('API tài khoản (Postgres thật)', () => {
   });
 
   describe('xác minh email', () => {
-    it('link đúng → đã xác minh; dùng lại lần 2 bị từ chối', async () => {
+    it('link đúng → đã xác minh; bấm lại lần 2 báo "đã xác minh rồi" chứ không báo lỗi', async () => {
       const reg = await register();
       const t = sent[0].token;
-      expect((await call('POST', '/api/auth/verify-email', { token: t })).status).toBe(200);
+      const first = await call('POST', '/api/auth/verify-email', { token: t });
+      expect(first.status).toBe(200);
+      expect(first.body.already).toBeUndefined();
       const me = await call('GET', '/api/me', null, reg.body.token);
       expect(me.body.user.email_verified).toBe(true);
-      expect((await call('POST', '/api/auth/verify-email', { token: t })).status).toBe(400);
+      expect(await call('POST', '/api/auth/verify-email', { token: t })).toEqual({ status: 200, body: { ok: true, already: true } });
     });
     it('link quá 24h bị từ chối', async () => {
       await register();

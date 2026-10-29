@@ -63,6 +63,13 @@ async function consumeEmailToken(token, kind) {
   return r.rows[0] ? r.rows[0].user_id : null;
 }
 
+// Chủ của 1 mã (kể cả đã dùng / hết hạn) — để báo "đã xác minh rồi" khi bấm lại link cũ
+async function emailTokenOwner(token, kind) {
+  if (!token || typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return null;
+  const r = await db.query('SELECT user_id FROM email_tokens WHERE token_hash = $1 AND kind = $2', [sha256(token), kind]);
+  return r.rows[0] ? r.rows[0].user_id : null;
+}
+
 // ============ KHOÁ ĐĂNG NHẬP (theo email) ============
 const lockMs = () => config.LOCKOUT_SECONDS * 1000;
 
@@ -123,5 +130,5 @@ function publicUser(u) {
 module.exports = {
   hashPassword, verifyPassword, signToken, sha256,
   createEmailToken, consumeEmailToken,
-  getLock, recordFailure, clearFailures, publicUser
+  getLock, recordFailure, clearFailures, publicUser, emailTokenOwner
 };

@@ -102,9 +102,9 @@
     VG.render(authScreen('Xác minh email', null, box,
       h('div', { class: 'bottom' }, h('a', { href: '#/', class: 'btn' }, 'Vào Ví Gọn'))));
     VG.api('POST', '/auth/verify-email', { token: token })
-      .then(function () {
+      .then(function (r) {
         box.className = 'msg ok';
-        box.textContent = 'Đã xác minh email. Cảm ơn bạn!';
+        box.textContent = r && r.already ? 'Email này đã được xác minh rồi, bạn không cần làm gì thêm.' : 'Đã xác minh email. Cảm ơn bạn!';
         if (VG.state.user) VG.state.user.email_verified = true;
       })
       .catch(function (e) { box.className = 'msg err'; box.textContent = e.message; });
