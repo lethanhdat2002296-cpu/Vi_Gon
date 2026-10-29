@@ -60,7 +60,7 @@
   ],
   "functions": {
     "api/index.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   }
 }

@@ -87,7 +87,7 @@ const server = http.createServer(async (req, res) => {
       const up = await fetch(OLLAMA + '/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODEL, messages, stream: true, keep_alive: '30m',
+        body: JSON.stringify({ model: MODEL, messages, stream: true, keep_alive: '24h',
           options: { temperature: 0.6, num_predict: Math.min(MAX_TOKENS, Number(body.max_tokens) || MAX_TOKENS), num_ctx: 8192 } }),
         signal: ctrl.signal
       });
@@ -112,4 +112,10 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`✓ Cổng gác AI Ví Gọn đang chạy: http://127.0.0.1:${PORT} · mô hình ${MODEL}`);
   console.log(`  Mật khẩu: dài ${TOKEN.length}, mã kiểm tra ${check} (phải giống token_check ở /api/health?ai=1)`);
   console.log('  Mở ra internet bằng: tailscale funnel --bg ' + PORT);
+  // Nạp sẵn mô hình vào RAM (lần hỏi đầu khỏi chờ ~30 giây), giữ 24 giờ
+  console.log('  Đang nạp sẵn mô hình…');
+  const t0 = Date.now();
+  fetch(OLLAMA + '/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODEL, keep_alive: '24h' }) })
+    .then(r => r.text()).then(() => console.log('  ✓ Mô hình sẵn sàng sau', ((Date.now() - t0) / 1000).toFixed(1), 'giây'))
+    .catch(e => console.log('  ✗ Chưa nạp được mô hình (Ollama đã chạy chưa?):', e.message));
 });
