@@ -5,7 +5,7 @@ const auth = require('../services/auth');
 const books = require('../services/books');
 const email = require('../utils/email');
 const { authRequired } = require('../middleware/auth');
-const { rateLimit, checkRateLimit } = require('../utils/ratelimit');
+const { rateLimit, checkRateLimit, peekRateLimit, incrementKey } = require('../utils/ratelimit');
 const { validateEmail, normalizeEmail, validatePassword } = require('../utils/validators');
 
 const router = express.Router();
@@ -111,17 +111,24 @@ router.post('/verify-email', rateLimit('verify', 20, HOUR), async (req, res, nex
 });
 
 // Gửi lại email xác minh cho người đang đăng nhập
+const RESEND_MAX = 3;
 router.post('/resend-verify', authRequired, async (req, res, next) => {
   try {
-    const rl = await checkRateLimit(`resend:${req.user.id}`, 3, HOUR);
-    if (!rl.allowed) return res.status(rl.error ? 503 : 429).json({ error: 'Đã gửi nhiều lần, thử lại sau.' });
+    // Chỉ tính những lần GỬI ĐƯỢC (lần gửi lỗi do cấu hình thư không làm người dùng bị chặn oan)
+    const key = `resend-sent:${req.user.id}`;
+    const rl = await peekRateLimit(key, RESEND_MAX, HOUR);
+    if (rl.locked) {
+      if (rl.error) return res.status(503).json({ error: 'Máy chủ đang bận, vui lòng thử lại sau.' });
+      return res.status(429).json({ error: `Đã gửi ${RESEND_MAX} thư trong 1 giờ. Thử lại sau ${Math.ceil(rl.retryAfterSec / 60)} phút, hoặc mở thư mới nhất đã gửi.` });
+    }
     const r = await db.query('SELECT id, email, full_name, email_verified_at FROM users WHERE id = $1', [req.user.id]);
     const u = r.rows[0];
     if (u.email_verified_at) return res.json({ ok: true, already: true });
     const token = await auth.createEmailToken(u.id, 'verify');
     const sent = await email.sendVerifyEmail(u.email, token, u.full_name);
     if (!sent.ok) return res.status(502).json({ error: 'Chưa gửi được email, thử lại sau.' });
-    res.json({ ok: true });
+    await incrementKey(key, HOUR);
+    res.json({ ok: true, email: u.email });
   } catch (e) { next(e); }
 });
 

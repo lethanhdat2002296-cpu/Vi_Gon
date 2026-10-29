@@ -164,6 +164,22 @@ describe.skipIf(!TEST_DB)('API tài khoản (Postgres thật)', () => {
       expect((await call('POST', '/api/auth/verify-email', { token: old })).status).toBe(400);
       expect((await call('POST', '/api/auth/verify-email', { token: sent[1].token })).status).toBe(200);
     });
+    it('gửi lại: lần gửi lỗi không bị tính; quá 3 thư/giờ báo thời gian chờ', async () => {
+      const reg = await register();
+      // Máy chủ thư lỗi 5 lần → không bị khoá
+      email.sendVerifyEmail.mockResolvedValue({ ok: false, err: 'EDNS' });
+      for (let i = 0; i < 5; i++) expect((await call('POST', '/api/auth/resend-verify', null, reg.body.token)).status).toBe(502);
+      // Sửa xong: gửi được 3 lần, lần 4 bị chặn kèm số phút
+      email.sendVerifyEmail.mockResolvedValue({ ok: true });
+      for (let i = 0; i < 3; i++) {
+        const r = await call('POST', '/api/auth/resend-verify', null, reg.body.token);
+        expect(r.status).toBe(200);
+        expect(r.body.email).toBe(reg.body.user.email);
+      }
+      const blocked = await call('POST', '/api/auth/resend-verify', null, reg.body.token);
+      expect(blocked.status).toBe(429);
+      expect(blocked.body.error).toMatch(/Thử lại sau \d+ phút/);
+    });
   });
 
   describe('quên / đặt lại mật khẩu', () => {
