@@ -23,8 +23,11 @@ module.exports = {
   // Giữ đăng nhập 30 ngày (F01)
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '30d',
 
-  // Link trong email (xác minh, quên mật khẩu)
-  APP_URL: (process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, ''),
+  // Link trong email (xác minh, quên mật khẩu, nhắc…). Chưa đặt APP_URL thì dùng tên miền Production
+  // Vercel tự cấp (VERCEL_PROJECT_PRODUCTION_URL) để link trong thư không trỏ về localhost.
+  APP_URL: (process.env.APP_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:3000')
+  ).replace(/\/+$/, ''),
 
   // Khoá đăng nhập: 15 phút sau 5 lần sai (F01)
   MAX_LOGIN_ATTEMPTS: parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10),

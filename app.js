@@ -106,6 +106,7 @@ app.get('/api/health', async (req, res) => {
     latency_ms: latency,
     migration,
     has_smtp: !!(config.SMTP.host && config.SMTP.user && config.SMTP.pass),
+    app_url: config.APP_URL,   // gốc của link trong email
     smtp,
     server_time: new Date().toISOString()
   });
