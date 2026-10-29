@@ -20,6 +20,7 @@ const cronRoutes = require('./routes/cron');
 const bankRoutes = require('./routes/bank');
 const receiptRoutes = require('./routes/receipts');
 const bookRoutes = require('./routes/books');
+const aiRoutes = require('./routes/ai');
 const { groups: groupRoutes, debts: debtRoutes } = require('./routes/sharing');
 
 const app = express();
@@ -34,7 +35,7 @@ app.use((req, res, next) => {
   // CSP: cùng origin + Google Fonts (Be Vietnam Pro) + jsDelivr cho Tesseract quét hoá đơn (script, worker, wasm, dữ liệu chữ)
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src 'self' blob: https://cdn.jsdelivr.net; " +
-    "connect-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
+    "connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: blob: https://img.vietqr.io; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
   if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
     res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
@@ -77,6 +78,7 @@ app.use('/api/books', bookRoutes.router);    // sổ chung, thành viên, lời 
 app.use('/api/invites', bookRoutes.invites);
 app.use('/api/groups', groupRoutes);          // chia tiền nhóm
 app.use('/api/debts', debtRoutes);            // sổ nợ
+app.use('/api/ai', aiRoutes);                // số liệu tóm tắt cho trợ lý AI chạy trên máy
 app.use('/api/cron', cronRoutes);          // job định kỳ (bảo vệ bằng CRON_SECRET)
 
 // Health check: kiểm tra DB THẬT (uptime monitor phát hiện được sự cố)

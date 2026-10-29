@@ -47,6 +47,8 @@
         h('span', { class: 'grow' }, h('span', { class: 'menu-lbl' }, label), sub ? h('span', { class: 'muted small block' }, sub) : null), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
     }
     function group(title, items) { return h('div', { class: 'stack-sm' }, h('span', { class: 'sec-lbl' }, title), h('div', { class: 'card tight' }, items)); }
+    c.appendChild(group('Trợ lý', [
+      item('#/ai', 'spark', '#0B8A8F', 'Trợ lý AI', 'Tư vấn dùng tiền, lập kế hoạch chi tiêu · chạy trên máy')]));
     c.appendChild(group('Tiền của tôi', [
       item('#/wallets', 'wallet', '#0B8F72', 'Ví', 'Thêm, sửa, ẩn ví; chuyển tiền'),
       item('#/categories', 'tag', '#E07A2F', 'Danh mục', 'Sửa, sắp xếp, gộp danh mục'),
