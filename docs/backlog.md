@@ -34,7 +34,7 @@ Máy chủ (làm được ngay, không cần mẫu thông báo)
 - [ ] Màn Liên kết ngân hàng hiện nguồn của từng giao dịch, cảnh báo khi SePay sắp hết lượt trong tháng.
 
 App Android
-- [ ] Bọc app thành APK (Capacitor), giao diện giữ nguyên; build tự động trên GitHub Actions để tải về điện thoại
+- [~] Bọc app thành APK (Capacitor), giao diện giữ nguyên: đã có bản debug (`mobile/`). Còn build tự động trên GitHub Actions để tải về điện thoại
       (nếu phiên làm việc không đẩy được file workflow, chủ repo tạo file theo hướng dẫn).
 - [ ] `NotificationListenerService`: chỉ đọc thông báo của app ngân hàng được chọn, bỏ qua app khác.
 - [ ] Mất mạng thì giữ hàng đợi trên máy, có mạng gửi lại.
@@ -68,6 +68,6 @@ Phía chủ repo
 
 Phía code
 - [x] Cổng gác `tools/ai-host/server.js` (không cần thư viện): mật khẩu, chỉ `/health` + `/v1/chat`, mô hình cố định, nghe 127.0.0.1.
-- [x] `POST /api/ai/chat`: máy chủ tự tạo lời nhắc + số liệu, chuyển sang laptop, trả từng chữ; 80 câu/người/ngày; `maxDuration` 60 giây.
+- [x] `POST /api/ai/chat`: máy chủ tự tạo lời nhắc + số liệu, chuyển sang laptop, trả từng chữ; 80 câu/người/ngày; `maxDuration` 300 giây.
 - [x] `GET /api/ai/host`, `/api/health?ai=1`: laptop có đang trả lời không.
 - [x] App tự dùng laptop khi bật (không cần WebGPU), laptop tắt thì quay về AI trên máy hoặc báo "Trợ lý đang nghỉ".

@@ -1,0 +1,17 @@
+{
+  "name": "vi-gon-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ví Gọn bản Android (Capacitor, mở app web thật)",
+  "scripts": {
+    "sync": "cap sync android",
+    "apk": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.6.10",
+    "@capacitor/core": "7.6.10"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.6.10"
+  }
+}

@@ -19,7 +19,7 @@ const browserGlobals = {
 };
 
 module.exports = [
-  { ignores: ['node_modules/**'] },
+  { ignores: ['node_modules/**', 'mobile/**'] },
   js.configs.recommended,
 
   // Mã server (CommonJS)
