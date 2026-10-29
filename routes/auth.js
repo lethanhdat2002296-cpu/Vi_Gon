@@ -93,8 +93,15 @@ router.post('/logout', authRequired, async (req, res, next) => {
 // ============ XÁC MINH EMAIL (token 24h) ============
 router.post('/verify-email', rateLimit('verify', 20, HOUR), async (req, res, next) => {
   try {
-    const userId = await auth.consumeEmailToken(req.body && req.body.token, 'verify');
-    if (!userId) return res.status(400).json({ error: 'Link xác minh không hợp lệ hoặc đã hết hạn.' });
+    const token = req.body && req.body.token;
+    const userId = await auth.consumeEmailToken(token, 'verify');
+    if (!userId) {
+      // Bấm lại link đã dùng (hoặc mở lần 2) mà email đã xác minh → báo thành công, không làm người dùng hoang mang
+      const owner = await auth.emailTokenOwner(token, 'verify');
+      const u = owner && (await db.query('SELECT email_verified_at FROM users WHERE id = $1', [owner])).rows[0];
+      if (u && u.email_verified_at) return res.json({ ok: true, already: true });
+      return res.status(400).json({ error: 'Link xác minh không hợp lệ hoặc đã hết hạn. Vào app bấm "Gửi lại" để nhận link mới.' });
+    }
     await db.query(
       'UPDATE users SET email_verified_at = COALESCE(email_verified_at, NOW()), updated_at = NOW() WHERE id = $1',
       [userId]

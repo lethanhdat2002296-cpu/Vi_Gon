@@ -277,14 +277,22 @@
 
       if (!u.email_verified) {
         var resend = h('button', { type: 'button', class: 'btn link' }, 'Gửi lại');
-        var verifyBox = h('div', { class: 'msg warn' }, h('span', null, 'Kiểm tra hộp thư để xác minh email.'), resend);
+        var verifyBox = h('div', { class: 'msg warn' }, h('span', null, 'Xác minh email ' + u.email + ': mở thư "[Ví Gọn] Xác minh email" và bấm nút.'), resend);
         resend.addEventListener('click', function () {
           resend.disabled = true;
           VG.api('POST', '/auth/resend-verify')
-            .then(function () { verifyBox.className = 'msg ok'; verifyBox.textContent = 'Đã gửi lại email xác minh.'; })
+            .then(function (r) {
+              if (r.already) { u.email_verified = true; verifyBox.remove(); return; }
+              verifyBox.className = 'msg ok';
+              verifyBox.textContent = 'Đã gửi thư xác minh tới ' + u.email + '. Không thấy thì xem mục Spam / Quảng cáo.';
+            })
             .catch(function (e) { verifyBox.className = 'msg err'; verifyBox.textContent = e.message; });
         });
         body.appendChild(verifyBox);
+        // Có thể đã bấm link xác minh ở trình duyệt khác (vd trình duyệt trong Gmail) → hỏi lại máy chủ
+        VG.api('GET', '/me', null, { personal: true, fresh: true }).then(function (d) {
+          if (d.user && d.user.email_verified) { VG.state.user = d.user; verifyBox.remove(); }
+        }).catch(function () {});
       }
 
       body.appendChild(h('div', { class: 'row-between' }, h('b', null, 'Gần đây'), h('a', { href: '#/ledger', class: 'small' }, 'Xem tất cả')));
