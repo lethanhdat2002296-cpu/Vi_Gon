@@ -86,6 +86,11 @@ app.use('/api/cron', cronRoutes);          // job định kỳ (bảo vệ bằn
 let smtpCheck = null;
 app.get('/api/health', async (req, res) => {
   let smtp;
+  let aiHost;
+  if (req.query.ai === '1') {
+    const s = await aiRoutes.hostStatus();
+    aiHost = { configured: s.configured, ok: s.ok, model: s.model || null, error: s.error || (s.ok ? undefined : s.status ? 'status ' + s.status : undefined) };
+  }
   if (req.query.smtp === '1') {
     if (!smtpCheck || Date.now() - smtpCheck.at > 30000) smtpCheck = { at: Date.now(), result: await require('./utils/email').checkSmtp() };
     smtp = smtpCheck.result;
@@ -108,6 +113,7 @@ app.get('/api/health', async (req, res) => {
     has_smtp: !!(config.SMTP.host && config.SMTP.user && config.SMTP.pass),
     app_url: config.APP_URL,   // gốc của link trong email
     smtp,
+    ai_host: aiHost,
     server_time: new Date().toISOString()
   });
 });

@@ -19,7 +19,7 @@
     { key: 'light', name: 'Nhẹ', size: '~0,9 GB', note: 'Nhanh, hợp hầu hết điện thoại', f16: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', f32: 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC' },
     { key: 'smart', name: 'Thông minh hơn', size: '~1,8 GB', note: 'Trả lời tốt hơn, cần máy mạnh', f16: 'Qwen2.5-3B-Instruct-q4f16_1-MLC', f32: 'Qwen2.5-3B-Instruct-q4f32_1-MLC' }
   ];
-  var MODEL_KEY = 'vigon_ai_model', READY_KEY = 'vigon_ai_ready';
+  var MODEL_KEY = 'vigon_ai_model', READY_KEY = 'vigon_ai_ready', HOST_KEY = 'vigon_ai_host';
   var HISTORY_TURNS = 6, KEEP_MESSAGES = 60;
   var SUGGEST = [
     'Mình có 15 triệu, nên chia thế nào cho hợp lý?',
@@ -29,7 +29,7 @@
   ];
 
   // Trạng thái giữ suốt phiên: mô hình đã nạp dùng chung cho màn #/ai và bong bóng chat
-  var S = { lib: null, engine: null, modelId: null, gpu: undefined, busy: false, loading: null, listeners: [], ctx: null };
+  var S = { lib: null, engine: null, modelId: null, gpu: undefined, busy: false, loading: null, listeners: [], ctx: null, host: null, abort: null };
 
   function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -39,8 +39,51 @@
   function saveChat(list) { store(chatKey(), JSON.stringify(list.slice(-KEEP_MESSAGES))); }
   function savedModel() { return read(MODEL_KEY) || 'light'; }
 
-  // Đã tải mô hình trên máy này ít nhất 1 lần → hiện bong bóng chat
-  VG.aiReady = function () { return !!S.engine || !!read(READY_KEY); };
+  // Đã tải mô hình trên máy này ít nhất 1 lần
+  function deviceReady() { return !!S.engine || !!read(READY_KEY); }
+  // Có AI dùng được (trên máy hoặc laptop của chủ app) → hiện bong bóng chat
+  VG.aiReady = function () { return deviceReady() || read(HOST_KEY) === '1'; };
+
+  // AI trên laptop của chủ app (tools/ai-host): hỏi máy chủ có nối được không, nhớ 60 giây
+  function hostStatus(force) {
+    if (!force && S.host && Date.now() - S.host.at < 60000) return Promise.resolve(S.host);
+    return VG.api('GET', '/ai/host', null, { fresh: true }).then(function (d) {
+      S.host = { at: Date.now(), ok: !!d.ok, configured: !!d.configured, model: d.model };
+      store(HOST_KEY, d.ok ? '1' : null);
+      return S.host;
+    }).catch(function () { S.host = { at: Date.now(), ok: false }; return S.host; });
+  }
+  // Hỏi AI trên laptop: máy chủ tự gắn số liệu + lời nhắc; nhận chữ từng phần
+  function askHost(turns, onText) {
+    var ctrl = new window.AbortController();
+    S.abort = ctrl;
+    var headers = VG.authHeaders();
+    headers['Content-Type'] = 'application/json';
+    return fetch('/api/ai/chat', { method: 'POST', headers: headers, body: JSON.stringify({ messages: turns }), signal: ctrl.signal }).then(function (r) {
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          var err = new Error(d.error || 'Laptop chưa trả lời được');
+          err.hostDown = r.status === 503;
+          throw err;
+        });
+      }
+      var reader = r.body.getReader();
+      var dec = new window.TextDecoder();
+      var text = '';
+      function pump() {
+        return reader.read().then(function (x) {
+          if (x.done) return text;
+          text += dec.decode(x.value, { stream: true });
+          onText(text);
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function (e) {
+      if (e.name === 'AbortError') return '';
+      throw e;
+    }).then(function (t) { S.abort = null; return t; }, function (e) { S.abort = null; throw e; });
+  }
 
   // WebGPU + có hỗ trợ số thực 16-bit không (không có thì dùng bản q4f32)
   function gpuInfo() {
@@ -113,13 +156,16 @@
     clearBtn.addEventListener('click', function () {
       if (!loadChat().length || window.confirm('Xoá toàn bộ cuộc trò chuyện?')) { saveChat([]); VG.route(); }
     });
-    gpuInfo().then(function (gpu) {
+    Promise.all([hostStatus(true), gpuInfo()]).then(function (r) {
+      var host = r[0], gpu = r[1];
       body.textContent = '';
+      if (host.ok || deviceReady()) return chatView(body, {});
       if (!gpu) {
-        body.appendChild(VG.empty('🧠', 'Máy này chưa chạy được AI', 'Trợ lý chạy ngay trên máy nên cần WebGPU. Hãy mở Ví Gọn bằng Chrome bản mới (Android 12 trở lên) hoặc Chrome / Edge trên máy tính.'));
+        body.appendChild(VG.empty('🧠', host.configured ? 'Trợ lý đang nghỉ' : 'Máy này chưa chạy được AI', host.configured
+          ? 'Laptop chạy AI đang tắt hoặc mất mạng, và máy này chưa chạy được AI trực tiếp. Thử lại sau nhé.'
+          : 'Trợ lý chạy ngay trên máy nên cần WebGPU. Hãy mở Ví Gọn bằng Chrome bản mới (Android 12 trở lên) hoặc Chrome / Edge trên máy tính.'));
         return;
       }
-      if (VG.aiReady()) return chatView(body, {});
       setup(body, gpu);
     });
   };
@@ -169,8 +215,14 @@
     var send = h('button', { type: 'button', class: 'chat-send', 'aria-label': 'Gửi' }, '➤');
     var loadBar = h('div', { class: 'prog' }, h('i'));
     var loadText = h('span', { class: 'lbl' }, 'Đang mở trợ lý…');
-    var loadBox = h('div', { class: 'card ai-loading' + (S.engine ? ' hidden' : '') }, loadText, loadBar);
-    body.appendChild(h('p', { class: 'lbl center-text' }, '✨ AI chạy trên máy · Gợi ý để tham khảo, bạn tự quyết định nhé.'));
+    var loadBox = h('div', { class: 'card ai-loading hidden' }, loadText, loadBar);
+    var useHost = function () { return !!(S.host && S.host.ok); };
+    var source = h('p', { class: 'lbl center-text' });
+    function drawSource() {
+      source.textContent = (useHost() ? '💻 AI trên laptop' + (S.host.model ? ' · ' + S.host.model : '') : '✨ AI chạy trên máy') + ' · Gợi ý để tham khảo, bạn tự quyết định nhé.';
+    }
+    drawSource();
+    body.appendChild(source);
     body.appendChild(loadBox);
     body.appendChild(box);
     var chips = h('div', { class: 'chips ai-suggest' }, SUGGEST.map(function (q) {
@@ -181,21 +233,32 @@
     input.addEventListener('input', function () { input.style.height = 'auto'; input.style.height = Math.min(120, input.scrollHeight) + 'px'; });
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(input.value); } });
     send.addEventListener('click', function () {
-      if (S.busy && S.engine) { S.engine.interruptGenerate(); return; }
+      if (S.busy) {
+        if (S.abort) S.abort.abort();
+        else if (S.engine) S.engine.interruptGenerate();
+        return;
+      }
       ask(input.value);
     });
 
-    // Mô hình đã tải: nạp lại vào GPU ngay khi mở (gõ câu hỏi trong lúc chờ được)
-    var ready = ensureEngine(function (r) {
-      loadBar.firstChild.style.width = Math.round((r.progress || 0) * 100) + '%';
-      loadText.textContent = 'Đang mở trợ lý · ' + progressText(r);
-    }).then(function (engine) { loadBox.classList.add('hidden'); return engine; });
-    ready.catch(function (e) {
-      loadText.textContent = 'Không mở được trợ lý: ' + (e && e.message ? e.message.slice(0, 160) : 'lỗi không rõ');
-      loadBar.classList.add('hidden');
-      // Bộ nhớ đệm mô hình bị xoá → quay lại bước tải
-      store(READY_KEY, null);
-    });
+    // AI trên máy: nạp lại mô hình vào GPU (chỉ khi dùng tới; gõ câu hỏi trong lúc chờ được)
+    var ready = null;
+    function deviceEngine() {
+      if (ready) return ready;
+      if (!S.engine) loadBox.classList.remove('hidden');
+      ready = ensureEngine(function (r) {
+        loadBar.firstChild.style.width = Math.round((r.progress || 0) * 100) + '%';
+        loadText.textContent = 'Đang mở trợ lý · ' + progressText(r);
+      }).then(function (engine) { loadBox.classList.add('hidden'); return engine; });
+      ready.catch(function (e) {
+        loadText.textContent = 'Không mở được trợ lý: ' + (e && e.message ? e.message.slice(0, 160) : 'lỗi không rõ');
+        loadBar.classList.add('hidden');
+        // Bộ nhớ đệm mô hình bị xoá → quay lại bước tải
+        store(READY_KEY, null);
+      });
+      return ready;
+    }
+    if (!useHost() && deviceReady()) deviceEngine();
 
     function bubble(m) {
       var el = h('div', { class: 'msg-row ' + m.role }, h('div', { class: 'bubble' }));
@@ -223,18 +286,38 @@
       list.push({ role: 'user', content: q });
       saveChat(list);
       draw();
-      var live = h('div', { class: 'msg-row assistant' }, h('div', { class: 'bubble typing' }, S.engine ? 'Đang nghĩ…' : 'Chờ trợ lý mở xong…'));
+      var live = h('div', { class: 'msg-row assistant' }, h('div', { class: 'bubble typing' }, useHost() || S.engine ? 'Đang nghĩ…' : 'Chờ trợ lý mở xong…'));
       box.appendChild(live);
       toEnd();
       S.busy = true; send.textContent = '■'; send.setAttribute('aria-label', 'Dừng');
+      var onText = function (text) { live.firstChild.className = 'bubble'; live.firstChild.textContent = cleanReply(text, false); };
+      var turns = list.slice(-HISTORY_TURNS - 1, -1).map(function (m) { return { role: m.role, content: m.content }; });
+      turns.push({ role: 'user', content: q + (total ? '\n(Số tiền cần chia: ' + VG.fmt(total) + ')' : '') });
+      var answer = useHost() ? askHost(turns, onText).catch(function (e) {
+        if (!e.hostDown) throw e;
+        // Laptop tắt giữa chừng → đánh dấu, dùng AI trên máy nếu có
+        S.host = { at: Date.now(), ok: false }; store(HOST_KEY, null); drawSource();
+        if (!deviceReady()) throw new Error('Laptop chạy AI đang tắt. Thử lại sau nhé.');
+        return askDevice();
+      }) : askDevice();
+      answer.then(function (text) {
+        list.push({ role: 'assistant', content: text || '(Không có câu trả lời)', total: total });
+      }).catch(function (e) {
+        list.push({ role: 'assistant', content: 'Xin lỗi, mình gặp lỗi: ' + (e && e.message ? e.message.slice(0, 160) : 'không rõ') });
+      }).then(function () {
+        saveChat(list);
+        S.busy = false; send.textContent = '➤'; send.setAttribute('aria-label', 'Gửi');
+        draw();
+        toEnd();
+      });
+
+      function askDevice() {
       var ctxP = S.ctx ? Promise.resolve(S.ctx) : VG.api('GET', '/ai/context', null, { fresh: true }).then(function (d) { S.ctx = d.context; return S.ctx; });
-      Promise.all([ready, ctxP])
+      return Promise.all([deviceEngine(), ctxP])
         .then(function (r) {
           var engine = r[0], cx = r[1];
           live.firstChild.textContent = 'Đang nghĩ…';
-          var msgs = [{ role: 'system', content: A.systemPrompt(cx) }];
-          list.slice(-HISTORY_TURNS - 1, -1).forEach(function (m) { msgs.push({ role: m.role, content: m.content }); });
-          msgs.push({ role: 'user', content: q + (total ? '\n(Số tiền cần chia: ' + VG.fmt(total) + ')' : '') });
+          var msgs = [{ role: 'system', content: A.systemPrompt(cx) }].concat(turns);
           return engine.chat.completions.create({ messages: msgs, stream: true, temperature: 0.6, max_tokens: 700 });
         })
         .then(function (stream) {
@@ -244,28 +327,13 @@
             return it.next().then(function (r) {
               if (r.done) return;
               var delta = r.value.choices[0] && r.value.choices[0].delta && r.value.choices[0].delta.content;
-              if (delta) {
-                text += delta;
-                live.firstChild.className = 'bubble';
-                live.firstChild.textContent = cleanReply(text, false);
-              }
+              if (delta) { text += delta; onText(text); }
               return step();
             });
           }
           return step().then(function () { return text; });
-        })
-        .then(function (text) {
-          list.push({ role: 'assistant', content: text || '(Không có câu trả lời)', total: total });
-        })
-        .catch(function (e) {
-          list.push({ role: 'assistant', content: 'Xin lỗi, mình gặp lỗi: ' + (e && e.message ? e.message.slice(0, 160) : 'không rõ') });
-        })
-        .then(function () {
-          saveChat(list);
-          S.busy = false; send.textContent = '➤'; send.setAttribute('aria-label', 'Gửi');
-          draw();
-          toEnd();
         });
+      }
     }
     if (opts.focus) setTimeout(function () { input.focus(); }, 300);
   }
@@ -277,12 +345,16 @@
     b.addEventListener('click', openChatSheet);
     return b;
   };
+  // Lần đầu mở app: hỏi laptop ở nền để biết có nên hiện bong bóng
+  setTimeout(function () { if (VG.getToken()) hostStatus().catch(function () {}); }, 1500);
   function openChatSheet() {
     var body = h('div', { class: 'stack ai-sheet' });
     body.appendChild(h('div', { class: 'row-between' }, h('h2', null, '✨ Trợ lý AI'),
       h('a', { href: '#/ai', class: 'small' }, 'Toàn màn hình ›')));
+    var wait = VG.loading();
+    body.appendChild(wait);
     VG.openSheet(body);
-    chatView(body, { focus: true });
+    hostStatus().then(function () { wait.remove(); chatView(body, { focus: true }); });
   }
 
   // ===== Thẻ kế hoạch + áp thành ngân sách =====

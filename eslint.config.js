@@ -4,7 +4,7 @@ const js = require('@eslint/js');
 const nodeGlobals = {
   process: 'readonly', console: 'readonly', Buffer: 'readonly', __dirname: 'readonly',
   module: 'writable', require: 'readonly', exports: 'writable', globalThis: 'readonly',
-  fetch: 'readonly', URL: 'readonly', Intl: 'readonly',
+  fetch: 'readonly', URL: 'readonly', Intl: 'readonly', AbortController: 'readonly', AbortSignal: 'readonly', TextDecoder: 'readonly',
   setTimeout: 'readonly', setInterval: 'readonly', clearTimeout: 'readonly', clearInterval: 'readonly'
 };
 

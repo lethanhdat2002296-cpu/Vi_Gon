@@ -35,6 +35,9 @@ module.exports = {
 
   // Bảo vệ /api/cron/* (từ M5)
   CRON_SECRET: process.env.CRON_SECRET || '',
+  // Trợ lý AI chạy trên laptop của chủ app (tools/ai-host): địa chỉ Tailscale Funnel + mật khẩu riêng
+  AI_HOST_URL: (process.env.AI_HOST_URL || '').replace(/\/+$/, ''),
+  AI_HOST_TOKEN: process.env.AI_HOST_TOKEN || '',
 
   // Múi giờ app (Vercel chạy UTC, app tính theo giờ Việt Nam)
   TIMEZONE: process.env.TIMEZONE || 'Asia/Ho_Chi_Minh',
