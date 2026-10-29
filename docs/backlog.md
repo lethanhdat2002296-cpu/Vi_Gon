@@ -57,12 +57,17 @@ Lý do: mô hình chạy trên điện thoại chậm, lag. Laptop có GPU / RAM
 Điện thoại → Máy chủ Ví Gọn (Vercel: đăng nhập, gắn số liệu, giới hạn lượt) → Cloudflare Tunnel + mật khẩu riêng → Laptop (Ollama)
 ```
 
+Đổi Cloudflare Tunnel → **Tailscale Funnel** (địa chỉ https cố định miễn phí, không cần tên miền). Hướng dẫn: `tools/ai-host/README.md`.
+
 Phía chủ repo
-- [ ] Gửi cấu hình laptop: hệ điều hành, RAM, card đồ hoạ (NVIDIA mấy GB / Mac chip M).
-- [ ] Cài Ollama, tải mô hình (vd `ollama pull qwen2.5:7b`); cài Cloudflare Tunnel; để máy luôn bật, cắm sạc, tắt ngủ.
-- [ ] Đặt biến Vercel: địa chỉ tunnel + mật khẩu riêng.
+- [x] Laptop Windows, chip AMD Ryzen + card AMD. Đã cài Ollama, Node.js, Tailscale.
+- [ ] `ollama pull qwen2.5:7b` (chậm thì `qwen2.5:3b`), thử `ollama run`.
+- [ ] Tạo `.env` cho cổng gác, bật `tailscale funnel --bg 8787`, chạy `start.bat`.
+- [ ] Đặt biến Vercel `AI_HOST_URL`, `AI_HOST_TOKEN`; Redeploy; kiểm `/api/health?ai=1`.
+- [ ] Tắt ngủ khi cắm sạc; cho `start.bat` tự chạy khi bật máy.
 
 Phía code
-- [ ] API máy chủ nhận câu hỏi, gắn số liệu (dùng lại `/api/ai/context`), chuyển sang laptop, trả lời từng chữ (stream); kiểm giới hạn thời gian chạy của Vercel.
-- [ ] Giới hạn số câu hỏi mỗi người mỗi ngày; không bao giờ mở Ollama thẳng ra internet.
-- [ ] Công tắc trong app: "AI ở laptop" / "AI trên máy"; laptop không phản hồi thì tự chuyển sang AI trên máy.
+- [x] Cổng gác `tools/ai-host/server.js` (không cần thư viện): mật khẩu, chỉ `/health` + `/v1/chat`, mô hình cố định, nghe 127.0.0.1.
+- [x] `POST /api/ai/chat`: máy chủ tự tạo lời nhắc + số liệu, chuyển sang laptop, trả từng chữ; 80 câu/người/ngày; `maxDuration` 60 giây.
+- [x] `GET /api/ai/host`, `/api/health?ai=1`: laptop có đang trả lời không.
+- [x] App tự dùng laptop khi bật (không cần WebGPU), laptop tắt thì quay về AI trên máy hoặc báo "Trợ lý đang nghỉ".
