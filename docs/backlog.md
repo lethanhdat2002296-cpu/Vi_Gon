@@ -13,13 +13,38 @@ Code đã có (Bước 7: `/api/hook/:hookId`, màn Tôi → Liên kết ngân h
 - [ ] Nghiệm thu F12: chuyển thật 10.000 ₫ → trong 1 phút có giao dịch ở "Chờ xác nhận", đúng ví và số tiền; SePay gửi lại cùng dữ liệu không tạo trùng.
 - [ ] Cân nhắc: có giữ điều kiện "phải xác minh email mới liên kết" không.
 
-## B02 · App Android đọc thông báo ngân hàng
+## B02 · App Android đọc thông báo ngân hàng (chạy song song với SePay)
 
-Phương án thay / bổ sung cho SePay, không qua bên thứ ba. Chỉ Android.
+Lý do: gói miễn phí SePay chỉ 50 giao dịch/tháng; quá số đó giao dịch không về app. Đọc thông báo
+ngân hàng trên điện thoại không giới hạn, không qua bên thứ ba. Chỉ Android.
 
-- [ ] Bọc app thành APK (Capacitor), build tự động trên GitHub Actions để tải về điện thoại.
-- [ ] `NotificationListenerService`: chỉ đọc thông báo của app ngân hàng người dùng chọn.
-- [ ] Bộ đọc mẫu thông báo theo từng ngân hàng (cần mẫu thật: VCB, Techcombank, MB…), có test.
-- [ ] Gửi về API, đưa vào "Chờ xác nhận", chống trùng; giữ lại khi mất mạng rồi gửi sau.
-- [ ] Hướng dẫn tắt tối ưu pin (Xiaomi, Oppo, Samsung).
-- Cần chủ repo cung cấp: danh sách ngân hàng đang dùng, báo bằng thông báo app hay SMS, vài mẫu thông báo thật (che số tài khoản).
+```
+Giao dịch ngân hàng
+   ├─→ SePay (≤ 50/tháng)
+   └─→ App Android đọc thông báo (không giới hạn)
+              ↓
+   Ví Gọn gộp: 1 giao dịch chỉ ghi 1 lần → "Chờ xác nhận"
+```
+
+Máy chủ (làm được ngay, không cần mẫu thông báo)
+- [ ] API nhận dữ liệu từ điện thoại, khoá riêng cho từng máy (giống webhook SePay: chỉ lưu hash, thu hồi được).
+- [ ] Gộp hai nguồn, chống trùng: cùng ví + cùng số tiền + cùng chiều vào/ra + lệch giờ ≤ vài phút → giữ 1 bản,
+      bổ sung thông tin còn thiếu (mã tham chiếu SePay, nội dung đầy đủ). Có test cho các ca: SePay trước / thông báo
+      trước / hai khoản cùng số tiền gần nhau là 2 giao dịch thật.
+- [ ] Màn Liên kết ngân hàng hiện nguồn của từng giao dịch, cảnh báo khi SePay sắp hết lượt trong tháng.
+
+App Android
+- [ ] Bọc app thành APK (Capacitor), giao diện giữ nguyên; build tự động trên GitHub Actions để tải về điện thoại
+      (nếu phiên làm việc không đẩy được file workflow, chủ repo tạo file theo hướng dẫn).
+- [ ] `NotificationListenerService`: chỉ đọc thông báo của app ngân hàng được chọn, bỏ qua app khác.
+- [ ] Mất mạng thì giữ hàng đợi trên máy, có mạng gửi lại.
+- [ ] Hướng dẫn tắt tối ưu pin theo hãng máy.
+
+Bộ đọc thông báo theo ngân hàng (cần mẫu thật)
+- [ ] Mỗi ngân hàng 1 bộ đọc: số tiền, vào/ra, nội dung, giờ, 4 số cuối tài khoản; có test bằng mẫu thật.
+
+Cần chủ repo cung cấp
+- Danh sách ngân hàng đang dùng.
+- Ngân hàng báo bằng thông báo app hay SMS (SMS cần thêm quyền đọc tin nhắn).
+- Mỗi ngân hàng 2–3 ảnh thông báo thật (1 tiền vào, 1 tiền ra), che số tài khoản và tên người.
+- Hãng điện thoại + bản Android.
