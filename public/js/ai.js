@@ -33,10 +33,30 @@
 
   function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  // Lịch sử chat lưu trên máy, riêng từng tài khoản (không gửi lên máy chủ)
+  // Lịch sử chat: bản chính trên máy chủ (đồng bộ web ↔ app Android), bản sao trên máy để mở nhanh
   function chatKey() { return 'vigon_ai_chat_' + (VG.state.user ? VG.state.user.id : 'x'); }
   function loadChat() { try { return JSON.parse(localStorage.getItem(chatKey()) || '[]'); } catch (e) { return []; } }
-  function saveChat(list) { store(chatKey(), JSON.stringify(list.slice(-KEEP_MESSAGES))); }
+  // Gộp các lần lưu sát nhau thành 1 lần gửi; đọc lại từ máy chủ thì gửi nốt phần đang chờ trước
+  var pushTimer = null, pushList = null, pushing = Promise.resolve();
+  function flushChat() {
+    clearTimeout(pushTimer);
+    if (pushList) {
+      var body = { messages: pushList.slice(-KEEP_MESSAGES) };
+      pushList = null;
+      pushing = pushing.then(function () { return VG.api('PUT', '/ai/history', body, { keepCache: true }); }).catch(function () {});
+    }
+    return pushing;
+  }
+  function pushChat(list) { pushList = list; clearTimeout(pushTimer); pushTimer = setTimeout(flushChat, 300); }
+  function saveChat(list) { store(chatKey(), JSON.stringify(list.slice(-KEEP_MESSAGES))); pushChat(list); }
+  // Lấy lịch sử trên máy chủ; máy chủ chưa từng lưu → đẩy bản trên máy lên (chuyển từ bản cũ)
+  function syncChat() {
+    return flushChat().then(function () { return VG.api('GET', '/ai/history', null, { fresh: true }); }).then(function (d) {
+      if (!d.saved) { var local = loadChat(); if (local.length) pushChat(local); return null; }
+      store(chatKey(), JSON.stringify(d.messages));
+      return d.messages;
+    }).catch(function () { return null; });
+  }
   function savedModel() { return read(MODEL_KEY) || 'light'; }
 
   // Đã tải mô hình trên máy này ít nhất 1 lần
@@ -277,6 +297,12 @@
     function toEnd() { var last = box.lastChild; if (last) last.scrollIntoView({ block: 'end', behavior: 'smooth' }); }
     draw();
     if (list.length) setTimeout(toEnd, 50);
+    syncChat().then(function (remote) {
+      if (!remote || S.busy || JSON.stringify(remote) === JSON.stringify(list)) return;
+      list = remote;
+      draw();
+      setTimeout(toEnd, 50);
+    });
 
     function ask(q) {
       q = String(q || '').trim();

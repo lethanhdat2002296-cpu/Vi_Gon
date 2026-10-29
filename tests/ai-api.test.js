@@ -44,5 +44,32 @@ describe.skipIf(!TEST_DB)('Trợ lý AI: số liệu tóm tắt (Postgres thật
 
   it('cần đăng nhập', async () => {
     expect((await call('GET', '/api/ai/context')).status).toBe(401);
+    expect((await call('GET', '/api/ai/history')).status).toBe(401);
+    expect((await call('PUT', '/api/ai/history', { messages: [] })).status).toBe(401);
+  });
+
+  it('lịch sử chat: lưu trên máy chủ theo tài khoản, giữ 60 tin, chỉ nhận user/assistant', async () => {
+    const reg = async () => (await call('POST', '/api/auth/register', { email: `h${++seq}@vigon.vn`, password: 'matkhau123' })).body.token;
+    const t = await reg(), o = await reg();
+    expect((await call('GET', '/api/ai/history', null, t)).body).toEqual({ saved: false, messages: [] });
+
+    const msgs = [{ role: 'user', content: 'Mình có 15 triệu', extra: 'x' }, { role: 'assistant', content: 'Chia như sau', total: 15_000_000 }];
+    expect((await call('PUT', '/api/ai/history', { messages: msgs }, t)).status).toBe(200);
+    expect((await call('GET', '/api/ai/history', null, t)).body).toEqual({
+      saved: true, messages: [{ role: 'user', content: 'Mình có 15 triệu' }, { role: 'assistant', content: 'Chia như sau', total: 15_000_000 }]
+    });
+    // Người khác không thấy
+    expect((await call('GET', '/api/ai/history', null, o)).body).toEqual({ saved: false, messages: [] });
+
+    const many = Array.from({ length: 70 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'tin ' + i }));
+    expect((await call('PUT', '/api/ai/history', { messages: many }, t)).body.count).toBe(60);
+    const got = (await call('GET', '/api/ai/history', null, t)).body.messages;
+    expect(got[0].content).toBe('tin 10');
+
+    expect((await call('PUT', '/api/ai/history', { messages: [{ role: 'system', content: 'x' }] }, t)).status).toBe(400);
+    expect((await call('PUT', '/api/ai/history', { messages: 'x' }, t)).status).toBe(400);
+    // Xoá cuộc trò chuyện → vẫn "đã lưu" (máy khác không đẩy bản cũ lên lại)
+    await call('PUT', '/api/ai/history', { messages: [] }, t);
+    expect((await call('GET', '/api/ai/history', null, t)).body).toEqual({ saved: true, messages: [] });
   });
 });

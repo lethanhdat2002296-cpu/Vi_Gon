@@ -2,6 +2,7 @@
 //   GET  /api/ai/context  số liệu tóm tắt của sổ (cho AI chạy trên điện thoại)
 //   GET  /api/ai/host     laptop của chủ app có đang trả lời không (B03)
 //   POST /api/ai/chat     hỏi AI trên laptop: máy chủ gắn số liệu + lời nhắc, chuyển qua cổng gác, trả từng chữ
+//   GET/PUT /api/ai/history  lịch sử trò chuyện của tài khoản (60 tin gần nhất)
 // Không gọi dịch vụ AI bên ngoài nào; laptop chỉ nhận được qua AI_HOST_URL + AI_HOST_TOKEN.
 const express = require('express');
 const config = require('../config');
@@ -10,6 +11,7 @@ const { bookRequired } = require('../middleware/book');
 const advisor = require('../services/advisor');
 const { checkRateLimit } = require('../utils/ratelimit');
 const { systemPrompt } = require('../public/js/ai-core');
+const db = require('../lib/db');
 
 const router = express.Router();
 router.use(authRequired, bookRequired);
@@ -23,6 +25,33 @@ router.get('/context', async (req, res, next) => {
   try {
     res.setHeader('Cache-Control', 'private, no-store');
     res.json({ context: await advisor.buildContext(req.bookId) });
+  } catch (e) { next(e); }
+});
+
+// Lịch sử trò chuyện: theo tài khoản (không theo sổ). saved=false → chưa từng lưu trên máy chủ
+const KEEP_MESSAGES = 60;
+const MAX_STORED_CHARS = 6000;
+router.get('/history', async (req, res, next) => {
+  try {
+    res.setHeader('Cache-Control', 'private, no-store');
+    const r = await db.query('SELECT messages FROM ai_chats WHERE user_id = $1', [req.user.id]);
+    res.json({ saved: r.rows.length > 0, messages: r.rows.length ? r.rows[0].messages : [] });
+  } catch (e) { next(e); }
+});
+router.put('/history', async (req, res, next) => {
+  try {
+    const list = (req.body || {}).messages;
+    if (!Array.isArray(list)) return res.status(400).json({ error: 'Lịch sử không hợp lệ' });
+    const out = [];
+    for (const m of list.slice(-KEEP_MESSAGES)) {
+      if (!m || !['user', 'assistant'].includes(m.role) || typeof m.content !== 'string') return res.status(400).json({ error: 'Lịch sử không hợp lệ' });
+      const item = { role: m.role, content: m.content.slice(0, MAX_STORED_CHARS) };
+      if (Number.isSafeInteger(m.total) && m.total > 0) item.total = m.total;
+      out.push(item);
+    }
+    await db.query(`INSERT INTO ai_chats (user_id, messages, updated_at) VALUES ($1, $2::jsonb, now())
+      ON CONFLICT (user_id) DO UPDATE SET messages = EXCLUDED.messages, updated_at = now()`, [req.user.id, JSON.stringify(out)]);
+    res.json({ ok: true, count: out.length });
   } catch (e) { next(e); }
 });
 

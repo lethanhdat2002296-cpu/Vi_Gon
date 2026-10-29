@@ -83,10 +83,10 @@ window.VG = (function () {
   var cache = {};
   function clearCache() { cache = {}; }
 
-  // opts.personal: luôn gọi trên sổ cá nhân (bỏ header X-Book-Id); opts.fresh: bỏ qua đệm
+  // opts.personal: luôn gọi trên sổ cá nhân (bỏ header X-Book-Id); opts.fresh: bỏ qua đệm; opts.keepCache: ghi mà không xoá đệm
   function api(method, path, body, opts) {
     var isGet = method === 'GET';
-    if (!isGet) clearCache();
+    if (!isGet && !(opts && opts.keepCache)) clearCache();
     var key = isGet ? (opts && opts.personal ? 'p' : (state.book ? state.book.id : 'p')) + ' ' + path : null;
     if (isGet && !(opts && opts.fresh) && cache[key] && Date.now() - cache[key].at < CACHE_MS) {
       return Promise.resolve(JSON.parse(cache[key].json));
@@ -121,11 +121,27 @@ window.VG = (function () {
       }, function () { throw new Error('Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.'); });
   }
 
+  // Nhớ giao diện sáng/tối của lần đăng nhập gần nhất để màn đăng nhập cùng màu với app
   function applyTheme(user) {
-    var t = user && user.theme;
+    var t;
+    if (user) { t = user.theme; try { localStorage.setItem('vigon_theme', t || 'system'); } catch (e) {} }
+    else { try { t = localStorage.getItem('vigon_theme'); } catch (e) {} }
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
     else document.documentElement.removeAttribute('data-theme');
   }
+  applyTheme(null);
+
+  // Bàn phím điện thoại mở lên che ô đang gõ → cuộn ô đó vào giữa phần còn thấy
+  document.addEventListener('focusin', function (e) {
+    var el = e.target;
+    if (!el || !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+    setTimeout(function () {
+      if (document.activeElement !== el) return;
+      var r = el.getBoundingClientRect();
+      var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      if (r.bottom > vh - 12 || r.top < 0) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 350);
+  });
 
   // Vẽ lại màn hiện tại tại chỗ (dùng dữ liệu đệm, giữ vị trí cuộn, không nhảy con trỏ)
   function rerender() {
