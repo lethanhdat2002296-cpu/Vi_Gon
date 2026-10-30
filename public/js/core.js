@@ -292,6 +292,30 @@ window.VG = (function () {
     return wrap;
   }
 
+  // Mật khẩu mới: cùng quy tắc với máy chủ (utils/validators.js)
+  var PW_RULES = [
+    [function (p) { return Array.from(p).length >= 8; }, 'Ít nhất 8 ký tự', 'ít nhất 8 ký tự'],
+    [function (p) { return /\p{Lu}/u.test(p); }, 'Chữ hoa', 'chữ hoa'],
+    [function (p) { return /\p{Ll}/u.test(p); }, 'Chữ thường', 'chữ thường'],
+    [function (p) { return /\d/.test(p); }, 'Số', 'số'],
+    [function (p) { return /[^\p{L}\p{N}\s]/u.test(p); }, 'Ký tự đặc biệt (@ # ! …)', 'ký tự đặc biệt (vd: @ # ! . _)']
+  ];
+  function passwordError(p) {
+    var miss = PW_RULES.filter(function (r) { return !r[0](p || ''); }).map(function (r) { return r[2]; });
+    return miss.length ? 'Mật khẩu cần có: ' + miss.join(', ') : null;
+  }
+  // Ô mật khẩu mới kèm danh sách điều kiện, tích xanh dần khi gõ
+  function newPasswordField(id, label) {
+    var input = h('input', { id: id, name: id, type: 'password', autocomplete: 'new-password', required: true, maxlength: '72' });
+    var items = PW_RULES.map(function (r) { return h('li', null, r[1]); });
+    var wrap = field(label, input);
+    wrap.appendChild(h('ul', { class: 'pw-rules', 'aria-label': 'Điều kiện mật khẩu' }, items));
+    input.addEventListener('input', function () {
+      PW_RULES.forEach(function (r, i) { items[i].className = r[0](input.value) ? 'ok' : ''; });
+    });
+    return wrap;
+  }
+
   function message() {
     var box = h('div', { class: 'msg hidden', role: 'alert' });
     box.show = function (text, kind) { box.textContent = text; box.className = 'msg ' + (kind || 'err'); };
@@ -439,7 +463,7 @@ window.VG = (function () {
     fmt: fmt, show: show, parseAmount: parseAmount, moneyInput: moneyInput, group: group,
     vnDate: vnDate, today: today, addDays: addDays, dayLabel: dayLabel, shortDate: shortDate,
     toast: toast, hideToast: hideToast, openSheet: openSheet, closeSheet: closeSheet, sheetOpen: sheetOpen,
-    field: field, message: message, onSubmit: onSubmit, chips: chips, seg: seg, colorPicker: colorPicker,
+    field: field, passwordError: passwordError, newPasswordField: newPasswordField, message: message, onSubmit: onSubmit, chips: chips, seg: seg, colorPicker: colorPicker,
     COLORS: COLORS, toggle: toggle, badge: badge, topbar: topbar,
     screens: {}, route: null
   };

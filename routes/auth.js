@@ -7,6 +7,8 @@ const email = require('../utils/email');
 const { authRequired } = require('../middleware/auth');
 const { rateLimit, checkRateLimit, peekRateLimit, incrementKey } = require('../utils/ratelimit');
 const { validateEmail, normalizeEmail, validatePassword } = require('../utils/validators');
+const { checkRealEmail } = require('../utils/realemail');
+const config = require('../config');
 
 const router = express.Router();
 const HOUR = 3600 * 1000;
@@ -27,6 +29,8 @@ router.post('/register', rateLimit('register', 10, HOUR), async (req, res, next)
     const body = req.body || {};
     const err = validateEmail(body.email) || validatePassword(body.password) || validateName(body.full_name);
     if (err) return res.status(400).json({ error: err });
+    const fake = await checkRealEmail(body.email, { mx: config.EMAIL_MX_CHECK });
+    if (fake) return res.status(400).json({ error: fake, field: 'email' });
 
     const addr = normalizeEmail(body.email);
     const hash = await auth.hashPassword(body.password);

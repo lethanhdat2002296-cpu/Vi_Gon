@@ -20,7 +20,7 @@ describe.skipIf(!TEST_DB)('API ví, danh mục, giao dịch (Postgres thật)', 
   });
 
   async function user() {
-    const r = await call('POST', '/api/auth/register', { email: `u${++seq}@vigon.vn`, password: 'matkhau123' });
+    const r = await call('POST', '/api/auth/register', { email: `u${++seq}@vigon.vn`, password: 'Matkhau@123' });
     expect(r.status).toBe(201);
     return r.body.token;
   }

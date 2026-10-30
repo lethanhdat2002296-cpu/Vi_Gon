@@ -27,7 +27,7 @@ describe.skipIf(!TEST_DB)('Kế hoạch F09–F11 (Postgres thật)', () => {
 
   async function setup() {
     const addr = `p${++seq}@vigon.vn`;
-    const r = await call('POST', '/api/auth/register', { email: addr, password: 'matkhau123' });
+    const r = await call('POST', '/api/auth/register', { email: addr, password: 'Matkhau@123' });
     const t = r.body.token;
     const cats = (await call('GET', '/api/categories', null, t)).body.categories;
     const cat = (nm, k = 'expense') => cats.find(c => c.name === nm && c.kind === k).id;

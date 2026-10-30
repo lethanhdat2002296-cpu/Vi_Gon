@@ -12,7 +12,7 @@ describe.skipIf(!TEST_DB)('Trợ lý AI: số liệu tóm tắt (Postgres thật
   beforeEach(async () => { await resetData(); vi.spyOn(email, 'sendVerifyEmail').mockResolvedValue({ ok: true }); });
 
   it('gom số dư, thu chi tháng này, trung bình các tháng trước theo danh mục, mục tiêu; chỉ của sổ mình', async () => {
-    const r = await call('POST', '/api/auth/register', { email: `ai${++seq}@vigon.vn`, password: 'matkhau123' });
+    const r = await call('POST', '/api/auth/register', { email: `ai${++seq}@vigon.vn`, password: 'Matkhau@123' });
     const t = r.body.token;
     const w = (await call('POST', '/api/wallets', { name: 'Techcombank', type: 'bank', opening_balance: 20_000_000 }, t)).body.wallet;
     const cats = (await call('GET', '/api/categories', null, t)).body.categories;
@@ -26,7 +26,7 @@ describe.skipIf(!TEST_DB)('Trợ lý AI: số liệu tóm tắt (Postgres thật
     await sql(`INSERT INTO transactions (book_id, user_id, wallet_id, category_id, kind, amount, occurred_at, source) SELECT w.book_id, $1, w.id, $3, 'income', 15000000, $4, 'manual' FROM wallets w WHERE w.id = $2`, [r.body.user.id, w.id, cat('Lương'), at(prev, '05')]);
     await call('POST', '/api/transactions', { kind: 'expense', amount: 200_000, wallet_id: w.id, category_id: cat('Ăn uống') }, t);
     // Người khác không lọt vào
-    const o = await call('POST', '/api/auth/register', { email: `khac${++seq}@vigon.vn`, password: 'matkhau123' });
+    const o = await call('POST', '/api/auth/register', { email: `khac${++seq}@vigon.vn`, password: 'Matkhau@123' });
     await call('POST', '/api/wallets', { name: 'Khác', type: 'cash', opening_balance: 99_000_000 }, o.body.token);
 
     const res = await call('GET', '/api/ai/context', null, t);
@@ -49,7 +49,7 @@ describe.skipIf(!TEST_DB)('Trợ lý AI: số liệu tóm tắt (Postgres thật
   });
 
   it('lịch sử chat: lưu trên máy chủ theo tài khoản, giữ 60 tin, chỉ nhận user/assistant', async () => {
-    const reg = async () => (await call('POST', '/api/auth/register', { email: `h${++seq}@vigon.vn`, password: 'matkhau123' })).body.token;
+    const reg = async () => (await call('POST', '/api/auth/register', { email: `h${++seq}@vigon.vn`, password: 'Matkhau@123' })).body.token;
     const t = await reg(), o = await reg();
     expect((await call('GET', '/api/ai/history', null, t)).body).toEqual({ saved: false, messages: [] });
 

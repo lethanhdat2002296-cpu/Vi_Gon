@@ -57,10 +57,11 @@
     var form = h('form', { class: 'stack', novalidate: true },
       VG.field('Tên của bạn (không bắt buộc)', input({ id: 'full_name', name: 'full_name', type: 'text', autocomplete: 'name', maxlength: '100' })),
       VG.field('Email', input({ id: 'email', name: 'email', type: 'email', autocomplete: 'email', inputmode: 'email', required: true })),
-      VG.field('Mật khẩu (ít nhất 8 ký tự)', input({ id: 'password', name: 'password', type: 'password', autocomplete: 'new-password', minlength: '8', required: true })),
+      VG.newPasswordField('password', 'Mật khẩu'),
       msg, btn);
     VG.onSubmit(form, btn, msg, function () {
-      if (form.password.value.length < 8) throw new Error('Mật khẩu tối thiểu 8 ký tự');
+      var pwErr = VG.passwordError(form.password.value);
+      if (pwErr) throw new Error(pwErr);
       return VG.api('POST', '/auth/register', {
         full_name: form.full_name.value, email: form.email.value, password: form.password.value
       }).then(afterSignIn);
@@ -87,10 +88,11 @@
     var msg = VG.message();
     var btn = h('button', { class: 'btn', type: 'submit' }, 'Lưu mật khẩu mới');
     var form = h('form', { class: 'stack', novalidate: true },
-      VG.field('Mật khẩu mới (ít nhất 8 ký tự)', input({ id: 'password', name: 'password', type: 'password', autocomplete: 'new-password', minlength: '8', required: true })),
+      VG.newPasswordField('password', 'Mật khẩu mới'),
       msg, btn);
     VG.onSubmit(form, btn, msg, function () {
-      if (form.password.value.length < 8) throw new Error('Mật khẩu tối thiểu 8 ký tự');
+      var pwErr = VG.passwordError(form.password.value);
+      if (pwErr) throw new Error(pwErr);
       return VG.api('POST', '/auth/reset', { token: token, password: form.password.value }).then(afterSignIn);
     });
     VG.render(authScreen('Đặt mật khẩu mới', 'Các máy khác đang đăng nhập sẽ bị đăng xuất.', form));

@@ -89,7 +89,7 @@ describe.skipIf(!TEST_DB)('API /api/ai/chat qua laptop (Postgres thật)', () =>
     config.AI_HOST_TOKEN = TOKEN;
   });
   async function user() {
-    const r = await call('POST', '/api/auth/register', { email: `aih${++seq}@vigon.vn`, password: 'matkhau123' });
+    const r = await call('POST', '/api/auth/register', { email: `aih${++seq}@vigon.vn`, password: 'Matkhau@123' });
     await call('POST', '/api/wallets', { name: 'Techcombank', type: 'bank', opening_balance: 12_345_000 }, r.body.token);
     return r.body.token;
   }

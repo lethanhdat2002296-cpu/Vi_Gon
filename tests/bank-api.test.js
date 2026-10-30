@@ -20,7 +20,7 @@ describe.skipIf(!TEST_DB)('Liên kết ngân hàng F12 + ảnh hoá đơn F13 (P
   });
 
   async function setup({ verified = true } = {}) {
-    const r = await call('POST', '/api/auth/register', { email: `b${++seq}@vigon.vn`, password: 'matkhau123' });
+    const r = await call('POST', '/api/auth/register', { email: `b${++seq}@vigon.vn`, password: 'Matkhau@123' });
     const t = r.body.token;
     if (verified) await sql('UPDATE users SET email_verified_at = NOW() WHERE id = $1', [r.body.user.id]);
     const cats = (await call('GET', '/api/categories', null, t)).body.categories;
