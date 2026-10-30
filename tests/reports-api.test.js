@@ -25,7 +25,7 @@ describe.skipIf(!TEST_DB)('Tổng quan, Sổ, Báo cáo, Excel (Postgres thật)
   });
 
   async function setup() {
-    const r = await call('POST', '/api/auth/register', { email: `r${++seq}@vigon.vn`, password: 'matkhau123' });
+    const r = await call('POST', '/api/auth/register', { email: `r${++seq}@vigon.vn`, password: 'Matkhau@123' });
     const t = r.body.token;
     const cats = (await call('GET', '/api/categories', null, t)).body.categories;
     const cat = (name, kind = 'expense') => cats.find(c => c.name === name && c.kind === kind).id;

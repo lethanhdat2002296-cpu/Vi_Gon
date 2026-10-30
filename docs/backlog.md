@@ -71,3 +71,11 @@ Phía code
 - [x] `POST /api/ai/chat`: máy chủ tự tạo lời nhắc + số liệu, chuyển sang laptop, trả từng chữ; 80 câu/người/ngày; `maxDuration` 300 giây.
 - [x] `GET /api/ai/host`, `/api/health?ai=1`: laptop có đang trả lời không.
 - [x] App tự dùng laptop khi bật (không cần WebGPU), laptop tắt thì quay về AI trên máy hoặc báo "Trợ lý đang nghỉ".
+
+## B04 · Đăng nhập bằng Google
+
+Đã nghiên cứu, chưa làm. Chi tiết, rủi ro và việc chủ repo cần làm: `docs/google-login.md`.
+
+- [ ] Chủ repo tạo OAuth Client ID (Web) trên Google Cloud, đặt `GOOGLE_CLIENT_ID` trên Vercel.
+- [ ] Bản web: migration `google_sub`, `POST /api/auth/google`, nút ở màn Đăng nhập / Đăng ký, chống chiếm trước tài khoản.
+- [ ] APK: plugin đăng nhập gốc Android (Google chặn đăng nhập trong WebView), khoá ký release + SHA-1.

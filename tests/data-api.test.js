@@ -21,7 +21,7 @@ describe.skipIf(!TEST_DB)('Bảo mật và dữ liệu F08 (Postgres thật)', (
     vi.spyOn(email, 'sendVerifyEmail').mockResolvedValue({ ok: true });
   });
 
-  async function user(pw = 'matkhau123') {
+  async function user(pw = 'Matkhau@123') {
     const addr = `d${++seq}@vigon.vn`;
     const r = await call('POST', '/api/auth/register', { email: addr, password: pw, full_name: 'Dữ liệu' });
     return { t: r.body.token, email: addr, id: r.body.user.id };
@@ -206,32 +206,35 @@ describe.skipIf(!TEST_DB)('Bảo mật và dữ liệu F08 (Postgres thật)', (
     it('đặt PIN cần mật khẩu; PIN lưu dạng băm; mở khoá đúng/sai', async () => {
       const a = await user();
       expect((await call('POST', '/api/me/pin', { pin: '1234' }, a.t)).status).toBe(403);
-      expect((await call('POST', '/api/me/pin', { pin: '12', password: 'matkhau123' }, a.t)).status).toBe(400);
-      expect((await call('POST', '/api/me/pin', { pin: '1234567', password: 'matkhau123' }, a.t)).status).toBe(400);
-      const set = await call('POST', '/api/me/pin', { pin: '2468', password: 'matkhau123' }, a.t);
+      expect((await call('POST', '/api/me/pin', { pin: '12', password: 'Matkhau@123' }, a.t)).status).toBe(400);
+      expect((await call('POST', '/api/me/pin', { pin: '1234567', password: 'Matkhau@123' }, a.t)).status).toBe(400);
+      // PIN tạo mới phải đúng 6 số
+      expect((await call('POST', '/api/me/pin', { pin: '1234', password: 'Matkhau@123' }, a.t)).status).toBe(400);
+      expect((await call('POST', '/api/me/pin', { pin: '12345a', password: 'Matkhau@123' }, a.t)).status).toBe(400);
+      const set = await call('POST', '/api/me/pin', { pin: '246813', password: 'Matkhau@123' }, a.t);
       expect(set.body.user.has_pin).toBe(true);
       const { rows } = await sql('SELECT pin_hash FROM users WHERE id = $1', [a.id]);
       expect(rows[0].pin_hash).toMatch(/^\$2[aby]\$/);
-      expect((await call('POST', '/api/me/pin/verify', { pin: '2468' }, a.t)).status).toBe(200);
-      expect((await call('POST', '/api/me/pin/verify', { pin: '0000' }, a.t)).status).toBe(403);
+      expect((await call('POST', '/api/me/pin/verify', { pin: '246813' }, a.t)).status).toBe(200);
+      expect((await call('POST', '/api/me/pin/verify', { pin: '000000' }, a.t)).status).toBe(403);
     });
     it('sai PIN 5 lần → thu hồi mọi phiên, phải đăng nhập lại bằng mật khẩu', async () => {
       const a = await user();
-      await call('POST', '/api/me/pin', { pin: '2468', password: 'matkhau123' }, a.t);
-      for (let i = 0; i < 4; i++) expect((await call('POST', '/api/me/pin/verify', { pin: '1111' }, a.t)).status).toBe(403);
-      const fifth = await call('POST', '/api/me/pin/verify', { pin: '1111' }, a.t);
+      await call('POST', '/api/me/pin', { pin: '246813', password: 'Matkhau@123' }, a.t);
+      for (let i = 0; i < 4; i++) expect((await call('POST', '/api/me/pin/verify', { pin: '111111' }, a.t)).status).toBe(403);
+      const fifth = await call('POST', '/api/me/pin/verify', { pin: '111111' }, a.t);
       expect(fifth.status).toBe(401);
       expect(fifth.body.signed_out).toBe(true);
       expect((await call('GET', '/api/me', null, a.t)).status).toBe(401);
-      const again = await call('POST', '/api/auth/login', { email: a.email, password: 'matkhau123' });
+      const again = await call('POST', '/api/auth/login', { email: a.email, password: 'Matkhau@123' });
       expect(again.status).toBe(200);
-      expect((await call('POST', '/api/me/pin/verify', { pin: '2468' }, again.body.token)).status).toBe(200);
+      expect((await call('POST', '/api/me/pin/verify', { pin: '246813' }, again.body.token)).status).toBe(200);
     });
     it('gỡ PIN cần mật khẩu', async () => {
       const a = await user();
-      await call('POST', '/api/me/pin', { pin: '2468', password: 'matkhau123' }, a.t);
+      await call('POST', '/api/me/pin', { pin: '246813', password: 'Matkhau@123' }, a.t);
       expect((await call('DELETE', '/api/me/pin', { password: 'sai' }, a.t)).status).toBe(403);
-      expect((await call('DELETE', '/api/me/pin', { password: 'matkhau123' }, a.t)).body.user.has_pin).toBe(false);
+      expect((await call('DELETE', '/api/me/pin', { password: 'Matkhau@123' }, a.t)).body.user.has_pin).toBe(false);
     });
   });
 
@@ -240,12 +243,12 @@ describe.skipIf(!TEST_DB)('Bảo mật và dữ liệu F08 (Postgres thật)', (
       const a = await user();
       const b = await user();
       expect((await call('POST', '/api/me/email', { email: 'moi@vigon.vn', password: 'sai' }, a.t)).status).toBe(403);
-      expect((await call('POST', '/api/me/email', { email: b.email, password: 'matkhau123' }, a.t)).status).toBe(409);
-      const r = await call('POST', '/api/me/email', { email: 'Moi@Vigon.vn', password: 'matkhau123' }, a.t);
+      expect((await call('POST', '/api/me/email', { email: b.email, password: 'Matkhau@123' }, a.t)).status).toBe(409);
+      const r = await call('POST', '/api/me/email', { email: 'Moi@Vigon.vn', password: 'Matkhau@123' }, a.t);
       expect(r.status).toBe(200);
       expect(r.body.user).toMatchObject({ email: 'moi@vigon.vn', email_verified: false });
       expect(email.sendVerifyEmail).toHaveBeenLastCalledWith('moi@vigon.vn', expect.any(String), 'Dữ liệu');
-      expect((await call('POST', '/api/auth/login', { email: 'moi@vigon.vn', password: 'matkhau123' })).status).toBe(200);
+      expect((await call('POST', '/api/auth/login', { email: 'moi@vigon.vn', password: 'Matkhau@123' })).status).toBe(200);
     });
     it('chọn giao diện sáng / tối / theo máy', async () => {
       const a = await user();
@@ -262,12 +265,12 @@ describe.skipIf(!TEST_DB)('Bảo mật và dữ liệu F08 (Postgres thật)', (
       await seed(a.t);
       await seed(b.t);
       await call('POST', '/api/auth/login', { email: a.email, password: 'sai' });
-      await call('POST', '/api/me/pin', { pin: '2468', password: 'matkhau123' }, a.t);
-      await call('POST', '/api/me/pin/verify', { pin: '0000' }, a.t);
+      await call('POST', '/api/me/pin', { pin: '246813', password: 'Matkhau@123' }, a.t);
+      await call('POST', '/api/me/pin/verify', { pin: '000000' }, a.t);
       expect((await call('DELETE', '/api/me', { password: 'sai', confirm: 'XOA' }, a.t)).status).toBe(403);
-      expect((await call('DELETE', '/api/me', { password: 'matkhau123' }, a.t)).status).toBe(400);
+      expect((await call('DELETE', '/api/me', { password: 'Matkhau@123' }, a.t)).status).toBe(400);
       const before = await fingerprint(b.t);
-      expect((await call('DELETE', '/api/me', { password: 'matkhau123', confirm: 'XOA' }, a.t)).status).toBe(200);
+      expect((await call('DELETE', '/api/me', { password: 'Matkhau@123', confirm: 'XOA' }, a.t)).status).toBe(200);
 
       // Không còn bản ghi nào của A ở mọi bảng
       const one = async (q, p) => (await sql(q, p)).rows[0].n;
@@ -282,10 +285,10 @@ describe.skipIf(!TEST_DB)('Bảo mật và dữ liệu F08 (Postgres thật)', (
       expect(await one("SELECT COUNT(*)::int AS n FROM rate_limits WHERE key LIKE $1", [`%:${a.id}`])).toBe(0);
 
       expect((await call('GET', '/api/me', null, a.t)).status).toBe(401);
-      expect((await call('POST', '/api/auth/login', { email: a.email, password: 'matkhau123' })).status).toBe(401);
+      expect((await call('POST', '/api/auth/login', { email: a.email, password: 'Matkhau@123' })).status).toBe(401);
       expect(await fingerprint(b.t)).toEqual(before);
       // Đăng ký lại được bằng email cũ, tài khoản trống
-      const again = await call('POST', '/api/auth/register', { email: a.email, password: 'matkhau123' });
+      const again = await call('POST', '/api/auth/register', { email: a.email, password: 'Matkhau@123' });
       expect(again.status).toBe(201);
       expect((await call('GET', '/api/wallets', null, again.body.token)).body.wallets).toEqual([]);
     });

@@ -4,6 +4,8 @@ const db = require('../lib/db');
 const auth = require('../services/auth');
 const { authRequired, passwordConfirmRequired } = require('../middleware/auth');
 const { validatePassword, validateEmail, normalizeEmail } = require('../utils/validators');
+const { checkRealEmail } = require('../utils/realemail');
+const config = require('../config');
 const { checkRateLimit, clearKey } = require('../utils/ratelimit');
 const email = require('../utils/email');
 const { USER_COLS, validateName } = require('./auth');
@@ -90,6 +92,8 @@ router.post('/email', passwordConfirmRequired, async (req, res, next) => {
     const raw = (req.body || {}).email;
     const err = validateEmail(raw);
     if (err) return res.status(400).json({ error: err });
+    const fake = await checkRealEmail(raw, { mx: config.EMAIL_MX_CHECK });
+    if (fake) return res.status(400).json({ error: fake, field: 'email' });
     const addr = normalizeEmail(raw);
     const taken = await db.query('SELECT 1 FROM users WHERE LOWER(email) = $1 AND id <> $2', [addr, req.user.id]);
     if (taken.rows[0]) return res.status(409).json({ error: 'Email này đã có tài khoản khác dùng' });
@@ -111,15 +115,16 @@ router.post('/email', passwordConfirmRequired, async (req, res, next) => {
   }
 });
 
-// ============ PIN KHOÁ APP (4–6 số, băm bcrypt) ============
-const PIN_RE = /^\d{4,6}$/;
+// ============ PIN KHOÁ APP (tạo mới: đúng 6 số; mở khoá vẫn nhận PIN cũ 4–5 số), băm bcrypt ============
+const PIN_RE = /^\d{4,6}$/;      // mở khoá (PIN cũ có thể 4–5 số)
+const NEW_PIN_RE = /^\d{6}$/;     // tạo / đổi PIN
 const PIN_MAX_FAILS = 5;
 const PIN_WINDOW_MS = 15 * 60 * 1000;
 
 router.post('/pin', passwordConfirmRequired, async (req, res, next) => {
   try {
     const pin = String((req.body || {}).pin || '');
-    if (!PIN_RE.test(pin)) return res.status(400).json({ error: 'PIN gồm 4 đến 6 chữ số' });
+    if (!NEW_PIN_RE.test(pin)) return res.status(400).json({ error: 'PIN phải gồm đúng 6 chữ số' });
     const hash = await auth.hashPassword(pin);
     const r = await db.query(`UPDATE users SET pin_hash = $2, updated_at = NOW() WHERE id = $1 RETURNING ${USER_COLS}`, [req.user.id, hash]);
     await clearKey(`pin:${req.user.id}`);

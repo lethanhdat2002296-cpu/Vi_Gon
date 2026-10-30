@@ -21,7 +21,7 @@ describe.skipIf(!TEST_DB)('Dùng chung F14–F16 (Postgres thật)', () => {
   });
 
   async function user(name) {
-    const r = await call('POST', '/api/auth/register', { email: `${name.toLowerCase()}${++seq}@vigon.vn`, password: 'matkhau123', full_name: name });
+    const r = await call('POST', '/api/auth/register', { email: `${name.toLowerCase()}${++seq}@vigon.vn`, password: 'Matkhau@123', full_name: name });
     expect(r.status).toBe(201);
     await sql('UPDATE users SET email_verified_at = NOW(), full_name = $2 WHERE id = $1', [r.body.user.id, name]);
     return { t: r.body.token, id: r.body.user.id, email: r.body.user.email };
@@ -150,7 +150,7 @@ describe.skipIf(!TEST_DB)('Dùng chung F14–F16 (Postgres thật)', () => {
       expect((await call('PATCH', `/api/books/${f.book}/members/${f.vo.id}`, { role: 'viewer' }, f.chong.t)).status).toBe(200);
       expect((await call('GET', '/api/summary', null, f.as(f.vo))).body.book.role).toBe('viewer');
       expect((await call('DELETE', `/api/books/${f.book}`, null, f.chong.t)).status).toBe(403);
-      expect((await call('DELETE', `/api/books/${f.book}`, null, { token: f.chong.t, password: 'matkhau123' })).status).toBe(200);
+      expect((await call('DELETE', `/api/books/${f.book}`, null, { token: f.chong.t, password: 'Matkhau@123' })).status).toBe(200);
       expect((await call('GET', '/api/books', null, f.vo.t)).body.books).toHaveLength(1);
     });
   });

@@ -41,16 +41,18 @@
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') recheck(); });
   setInterval(recheck, 30000);
 
+  // PIN tạo mới luôn 6 số. PIN cũ 4–5 số vẫn mở được bằng nút "Mở".
+  var PIN_LEN = 6;
   function lockScreen() {
     var pin = '';
     var dots = h('div', { class: 'pin-dots', 'aria-live': 'polite' });
     var msg = VG.message();
     function draw() {
       dots.textContent = '';
-      for (var i = 0; i < Math.max(4, pin.length); i++) dots.appendChild(h('i', { class: i < pin.length ? 'on' : null }));
+      for (var i = 0; i < PIN_LEN; i++) dots.appendChild(h('i', { class: i < pin.length ? 'on' : null }));
     }
     function submit() {
-      if (pin.length < 4) return msg.show('PIN gồm 4 đến 6 chữ số');
+      if (pin.length < 4) return msg.show('Nhập đủ 6 số PIN');
       var tried = pin;
       pin = ''; draw();
       VG.api('POST', '/me/pin/verify', { pin: tried }).then(function () {
@@ -64,8 +66,9 @@
       msg.hide();
       if (k === 'back') pin = pin.slice(0, -1);
       else if (k === 'ok') return submit();
-      else if (pin.length < 6) pin += k;
+      else if (pin.length < PIN_LEN) pin += k;
       draw();
+      if (pin.length === PIN_LEN) setTimeout(submit, 120);   // đủ 6 số → tự mở khoá
     }
     var keys = h('div', { class: 'pin-keys' }, ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'back', '0', 'ok'].map(function (k) {
       return h('button', { type: 'button', class: 'key' + (k === 'ok' ? ' ok-key' : k === 'back' ? ' fn' : ''), 'aria-label': k === 'back' ? 'Xoá' : k === 'ok' ? 'Mở khoá' : k, onclick: function () { press(k); } },
@@ -168,8 +171,10 @@
     var pw = section('Mật khẩu', 'Đổi mật khẩu sẽ đăng xuất mọi máy khác.');
     pw.appendChild(h('details', null, h('summary', null, 'Đổi mật khẩu'), formWith([
       pwInput('s-cur', 'Mật khẩu hiện tại'),
-      pwInput('s-new', 'Mật khẩu mới (ít nhất 8 ký tự)', 'new-password')
+      VG.newPasswordField('s-new', 'Mật khẩu mới')
     ], 'Đổi mật khẩu', function (form) {
+      var pwErr = VG.passwordError(val(form, 's-new'));
+      if (pwErr) throw new Error(pwErr);
       return VG.api('POST', '/me/password', { current_password: val(form, 's-cur'), new_password: val(form, 's-new') }).then(function (d) {
         VG.signedIn(d); VG.toast('Đã đổi mật khẩu'); VG.route();
       });
@@ -195,13 +200,13 @@
     // PIN
     var pinBox = section('Khoá bằng PIN', u.has_pin ? 'Đang bật. Sau 5 phút không dùng, mở lại app phải nhập PIN.' : 'Đang tắt. Bật để khoá app sau 5 phút không dùng.');
     var pinFields = [
-      VG.field('PIN mới (4–6 số)', h('input', { id: 's-pin', type: 'password', inputmode: 'numeric', maxlength: '6', autocomplete: 'off' })),
-      VG.field('Nhập lại PIN', h('input', { id: 's-pin2', type: 'password', inputmode: 'numeric', maxlength: '6', autocomplete: 'off' })),
+      VG.field('PIN mới (6 số)', h('input', { id: 's-pin', type: 'password', inputmode: 'numeric', pattern: '[0-9]*', minlength: '6', maxlength: '6', autocomplete: 'off' })),
+      VG.field('Nhập lại PIN', h('input', { id: 's-pin2', type: 'password', inputmode: 'numeric', pattern: '[0-9]*', minlength: '6', maxlength: '6', autocomplete: 'off' })),
       pwInput('s-pin-pw', 'Mật khẩu tài khoản')
     ];
     pinBox.appendChild(h('details', null, h('summary', null, u.has_pin ? 'Đổi PIN' : 'Bật PIN'), formWith(pinFields, u.has_pin ? 'Đổi PIN' : 'Bật PIN', function (form) {
       var p1 = val(form, 's-pin'), p2 = val(form, 's-pin2');
-      if (!/^\d{4,6}$/.test(p1)) throw new Error('PIN gồm 4 đến 6 chữ số');
+      if (!/^\d{6}$/.test(p1)) throw new Error('PIN phải gồm đúng 6 chữ số');
       if (p1 !== p2) throw new Error('Hai lần nhập PIN không khớp');
       return VG.api('POST', '/me/pin', { pin: p1, password: val(form, 's-pin-pw') }).then(function (d) {
         setUser(d.user); VG.unlockedNow(); VG.toast('Đã bật khoá bằng PIN'); VG.route();

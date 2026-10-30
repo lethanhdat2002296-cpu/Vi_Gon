@@ -558,3 +558,10 @@ h1 { font-weight: 800; letter-spacing: -0.02em; }
 .ai-sheet .chat-bar { bottom: 0; box-shadow: none; }
 .ai-sheet h2 { font-size: 18px; }
 .ai-loading { gap: 6px; }
+
+/* Điều kiện mật khẩu mới */
+.pw-rules { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.pw-rules li { font-size: 12.5px; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 4px 10px; }
+.pw-rules li::before { content: '○ '; }
+.pw-rules li.ok { color: var(--accent); background: var(--accent-soft); }
+.pw-rules li.ok::before { content: '✓ '; }

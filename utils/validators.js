@@ -16,9 +16,19 @@ function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+// Mật khẩu mới (đăng ký, đổi, đặt lại): ≥ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.
+// Không áp cho đăng nhập để tài khoản cũ vẫn vào được.
+const PASSWORD_RULES = [
+  [p => [...p].length >= 8, 'ít nhất 8 ký tự'],
+  [p => /\p{Lu}/u.test(p), 'chữ hoa'],
+  [p => /\p{Ll}/u.test(p), 'chữ thường'],
+  [p => /\d/.test(p), 'số'],
+  [p => /[^\p{L}\p{N}\s]/u.test(p), 'ký tự đặc biệt (vd: @ # ! . _)']
+];
 function validatePassword(password) {
   if (!password || typeof password !== 'string') return 'Mật khẩu không được để trống';
-  if (password.length < 8) return 'Mật khẩu tối thiểu 8 ký tự';
+  const missing = PASSWORD_RULES.filter(([ok]) => !ok(password)).map(([, label]) => label);
+  if (missing.length) return 'Mật khẩu cần có: ' + missing.join(', ');
   // bcrypt chỉ dùng 72 byte đầu
   if (Buffer.byteLength(password, 'utf8') > 72) return 'Mật khẩu quá dài (tối đa 72 ký tự)';
   return null;

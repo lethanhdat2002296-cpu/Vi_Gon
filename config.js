@@ -38,6 +38,8 @@ module.exports = {
   // Trợ lý AI chạy trên laptop của chủ app (tools/ai-host): địa chỉ Tailscale Funnel + mật khẩu riêng
   AI_HOST_URL: (process.env.AI_HOST_URL || '').replace(/\/+$/, ''),
   AI_HOST_TOKEN: process.env.AI_HOST_TOKEN || '',
+  // Kiểm tên miền email nhận được thư (DNS MX) khi đăng ký / đổi email. Tắt trong test (không gọi DNS thật).
+  EMAIL_MX_CHECK: process.env.EMAIL_MX_CHECK ? process.env.EMAIL_MX_CHECK !== '0' : !process.env.VITEST,
 
   // Múi giờ app (Vercel chạy UTC, app tính theo giờ Việt Nam)
   TIMEZONE: process.env.TIMEZONE || 'Asia/Ho_Chi_Minh',
